@@ -1,0 +1,23 @@
+{
+  "name": "consolidacion-contable",
+  "version": "1.0.0",
+  "description": "Sistema de Consolidación Contable - Full Stack",
+  "scripts": {
+    "install-all": "cd backend && npm install && cd ../frontend && npm install",
+    "init-db": "cd backend && npm run init-db",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently --kill-others-on-fail \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "setup": "npm run install-all && npm run init-db",
+    "windows": "./iniciar-aplicacion.bat"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["contabilidad", "consolidacion", "fullstack", "express", "react"],
+  "author": "Sistema Contable",
+  "license": "ISC"
+}
