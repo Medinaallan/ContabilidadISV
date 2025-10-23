@@ -9,7 +9,9 @@ import {
   User, 
   Users,
   Clock,
-  Plus
+  Plus,
+  ChevronDown,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Loading from '@/components/Loading';
@@ -37,9 +39,10 @@ const DashboardPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState<SectionKey>('upload');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
+  const [isConsolidacionesOpen, setIsConsolidacionesOpen] = useState(false);
 
-  // Items de navegación
-  const navItems: NavItem[] = [
+  // Items de navegación para consolidaciones
+  const consolidacionesItems: NavItem[] = [
     {
       key: 'upload',
       label: 'Crear Consolidación',
@@ -48,7 +51,7 @@ const DashboardPage: React.FC = () => {
     },
     {
       key: 'history',
-      label: 'Historial de Archivos',
+      label: 'Historial',
       icon: History,
       component: HistorySection,
     },
@@ -58,6 +61,10 @@ const DashboardPage: React.FC = () => {
       icon: BarChart3,
       component: ReportsSection,
     },
+  ];
+
+  // Items de navegación independientes
+  const independentNavItems: NavItem[] = [
     {
       key: 'logs',
       label: 'Logs del Sistema',
@@ -67,15 +74,15 @@ const DashboardPage: React.FC = () => {
   ];
 
   // Agregar sección de usuarios solo para administradores
-  const allNavItems: NavItem[] = [
-    ...navItems,
-    ...(user?.role === 'admin' ? [{
-      key: 'users' as SectionKey,
-      label: 'Gestión de Usuarios',
-      icon: Users,
-      component: UsersSection,
-    }] : [])
-  ];
+  const adminItems: NavItem[] = user?.role === 'admin' ? [{
+    key: 'users' as SectionKey,
+    label: 'Gestión de Usuarios',
+    icon: Users,
+    component: UsersSection,
+  }] : [];
+
+  // Todos los items disponibles (para encontrar el componente activo)
+  const allNavItems: NavItem[] = [...consolidacionesItems, ...independentNavItems, ...adminItems];
 
   // Actualizar reloj cada segundo
   useEffect(() => {
@@ -142,7 +149,80 @@ const DashboardPage: React.FC = () => {
 
             {/* Navegación principal */}
             <nav className="flex space-x-1">
-              {allNavItems.map((item) => {
+              {/* Menú dropdown de Consolidaciones */}
+              <div className="relative">
+                <button
+                  onMouseEnter={() => setIsConsolidacionesOpen(true)}
+                  onMouseLeave={() => setIsConsolidacionesOpen(false)}
+                  className={`
+                    flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                    ${consolidacionesItems.some(item => item.key === activeSection)
+                      ? 'bg-primary-100 text-primary-700 border border-primary-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>Consolidaciones</span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+
+                {/* Dropdown menu */}
+                {isConsolidacionesOpen && (
+                  <div
+                    className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                    onMouseEnter={() => setIsConsolidacionesOpen(true)}
+                    onMouseLeave={() => setIsConsolidacionesOpen(false)}
+                  >
+                    {consolidacionesItems.map((item) => {
+                      const IconComponent = item.icon;
+                      return (
+                        <button
+                          key={item.key}
+                          onClick={() => {
+                            setActiveSection(item.key);
+                            setIsConsolidacionesOpen(false);
+                          }}
+                          className={`
+                            w-full flex items-center space-x-3 px-4 py-2 text-sm transition-colors text-left
+                            ${activeSection === item.key
+                              ? 'bg-primary-50 text-primary-700'
+                              : 'text-gray-700 hover:bg-gray-50'
+                            }
+                          `}
+                        >
+                          <IconComponent className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Items de navegación independientes */}
+              {independentNavItems.map((item) => {
+                const IconComponent = item.icon;
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveSection(item.key)}
+                    className={`
+                      flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                      ${activeSection === item.key
+                        ? 'bg-primary-100 text-primary-700 border border-primary-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    <IconComponent className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+
+              {/* Items de administrador */}
+              {adminItems.map((item) => {
                 const IconComponent = item.icon;
                 return (
                   <button
