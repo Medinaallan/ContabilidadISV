@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
-const Database = require('./src/models/Database');
+const Database = require('./src/models/Database_SqlServer');
 const { logActivity } = require('./src/middleware/logging');
 
 // Importar rutas

@@ -5,27 +5,28 @@ class Database {
   constructor() {
     // Configuración de conexión a SQL Server
     this.config = {
-      server: process.env.DB_SERVER || 'localhost\\SQLEXPRESS',
+      server: process.env.DB_SERVER || 'localhost',
+      port: parseInt(process.env.DB_PORT) || 1433,
       database: process.env.DB_NAME || 'ContabilidadISV',
-      user: process.env.DB_USER, // Si no se especifica, usa Windows Authentication
+      user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       options: {
-        encrypt: process.env.DB_ENCRYPT === 'true' || false, // Para Azure
-        trustServerCertificate: process.env.DB_TRUST_CERT === 'false' ? false : true, // Para desarrollo local
-        enableArithAbort: true,
+        encrypt: process.env.DB_ENCRYPT === 'true' || false,
+        trustServerCertificate: process.env.DB_TRUST_CERT === 'false' ? false : true,
+        enableArithAbort: process.env.DB_ENABLE_ARITH_ABORT === 'false' ? false : true,
       },
-      connectionTimeout: 30000,
-      requestTimeout: 30000,
+      connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT) || 30000,
+      requestTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT) || 30000,
     };
 
-    // Si no hay usuario especificado, usar Windows Authentication
+    // Configurar autenticación según el tipo de credenciales
     if (!this.config.user) {
+      // Windows Authentication
       this.config.authentication = {
-        type: 'ntlm',
-        options: {
-          domain: '', // Dominio vacío para usuario local
-        }
+        type: 'default'
       };
+      delete this.config.user;
+      delete this.config.password;
     }
 
     this.pool = null;
@@ -35,7 +36,7 @@ class Database {
   async init() {
     try {
       console.log('Conectando a SQL Server...');
-      console.log(`Servidor: ${this.config.server}`);
+      console.log(`Servidor: ${this.config.server}:${this.config.port}`);
       console.log(`Base de datos: ${this.config.database}`);
       
       // Crear pool de conexiones
