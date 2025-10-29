@@ -55,6 +55,11 @@ class Database {
 
   async verifyTables() {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en verifyTables, intentando reconectar...');
+        await this.init();
+      }
+      
       const result = await this.pool.request().query(`
         SELECT TABLE_NAME 
         FROM INFORMATION_SCHEMA.TABLES 
@@ -86,6 +91,11 @@ class Database {
 
   async createUser(userData) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en createUser, intentando reconectar...');
+        await this.init();
+      }
+      
       const { username, email, password, role = 'user' } = userData;
       
       const result = await this.pool.request()
@@ -152,6 +162,11 @@ class Database {
 
   async getAllUsers() {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en getAllUsers, intentando reconectar...');
+        await this.init();
+      }
+      
       const result = await this.pool.request()
         .query('SELECT id, username, email, role, created_at, updated_at FROM users ORDER BY created_at DESC');
       
@@ -163,6 +178,11 @@ class Database {
 
   async updateUser(id, updateData) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en updateUser, intentando reconectar...');
+        await this.init();
+      }
+      
       const fields = [];
       const request = this.pool.request();
       
@@ -199,6 +219,11 @@ class Database {
 
   async deleteUser(id) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en deleteUser, intentando reconectar...');
+        await this.init();
+      }
+      
       const result = await this.pool.request()
         .input('id', sql.Int, id)
         .query('DELETE FROM users WHERE id = @id; SELECT @@ROWCOUNT as rowsAffected');
@@ -215,6 +240,11 @@ class Database {
 
   async saveUploadedFile(fileData) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en saveUploadedFile, intentando reconectar...');
+        await this.init();
+      }
+      
       const { user_id, original_name, filename, filepath, filesize } = fileData;
       
       const result = await this.pool.request()
@@ -237,6 +267,11 @@ class Database {
 
   async getUploadedFiles(userId = null) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en getUploadedFiles, intentando reconectar...');
+        await this.init();
+      }
+      
       const request = this.pool.request();
       let query = `
         SELECT uf.*, u.username 
@@ -260,6 +295,11 @@ class Database {
 
   async getFileById(id) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en getFileById, intentando reconectar...');
+        await this.init();
+      }
+      
       const result = await this.pool.request()
         .input('id', sql.Int, id)
         .query('SELECT * FROM uploaded_files WHERE id = @id');
@@ -276,6 +316,11 @@ class Database {
 
   async saveConsolidatedData(data) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en saveConsolidatedData, intentando reconectar...');
+        await this.init();
+      }
+      
       const { file_id, sheet_name, row_data, totals } = data;
       
       const result = await this.pool.request()
@@ -302,6 +347,11 @@ class Database {
 
   async getConsolidatedData(fileId) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en getConsolidatedData, intentando reconectar...');
+        await this.init();
+      }
+      
       const result = await this.pool.request()
         .input('fileId', sql.Int, fileId)
         .query('SELECT * FROM consolidated_data WHERE file_id = @fileId');
@@ -321,6 +371,11 @@ class Database {
 
   async getAllTotals() {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en getAllTotals, intentando reconectar...');
+        await this.init();
+      }
+      
       const result = await this.pool.request()
         .query(`
           SELECT 
@@ -381,6 +436,11 @@ class Database {
 
   async getLogs(limit = 100) {
     try {
+      if (!this.pool || !this.isConnected) {
+        console.log('⚠️  Pool no disponible en getLogs, intentando reconectar...');
+        await this.init();
+      }
+      
       const result = await this.pool.request()
         .input('limit', sql.Int, limit)
         .query(`

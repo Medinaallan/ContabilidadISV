@@ -1,6 +1,7 @@
 const express = require('express');
 const Database = require('../models/Database');
 const { authenticateToken } = require('../middleware/auth');
+const { formatLogForAdmin, getLogStatistics } = require('../utils/logFormatter');
 
 const router = express.Router();
 const db = new Database();
@@ -25,16 +26,35 @@ router.get('/', async (req, res) => {
       logs = logs.filter(log => log.action.toLowerCase().includes(action.toLowerCase()));
     }
 
-    res.json({
-      logs: logs.map(log => ({
+    // Formatear logs para bitácora administrativa
+    const formattedLogs = logs.map(log => {
+      const formatted = formatLogForAdmin(log);
+      return {
         id: log.id,
         username: log.username || 'Sistema',
         action: log.action,
         description: log.description,
         ip_address: log.ip_address,
-        created_at: log.created_at
-      })),
-      total: logs.length
+        created_at: log.created_at,
+        // Campos amigables para bitácora
+        formatted_title: formatted.formatted_title,
+        formatted_message: formatted.formatted_message,
+        category: formatted.category,
+        priority: formatted.priority,
+        category_icon: formatted.category_icon,
+        priority_color: formatted.priority_color,
+        friendly_date: formatted.friendly_date,
+        location_info: formatted.location_info
+      };
+    });
+
+    // Obtener estadísticas
+    const statistics = getLogStatistics(logs);
+
+    res.json({
+      logs: formattedLogs,
+      total: logs.length,
+      statistics
     });
 
   } catch (error) {
