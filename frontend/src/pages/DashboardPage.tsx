@@ -11,7 +11,10 @@ import {
   Clock,
   Plus,
   ChevronDown,
-  FileText
+  FileText,
+  UserPlus,
+  Eye,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Loading from '@/components/Loading';
@@ -23,9 +26,11 @@ import HistorySection from '@/components/sections/HistorySection';
 import ReportsSection from '@/components/sections/ReportsSection';
 import LogsSection from '@/components/sections/LogsSection';
 import UsersSection from '@/components/sections/UsersSection';
+import ClientsViewSection from '@/components/sections/ClientsViewSection';
+import ClientsProfileSection from '@/components/sections/ClientsProfileSection';
 
 // Tipos para las secciones
-type SectionKey = 'upload' | 'history' | 'reports' | 'logs' | 'users';
+type SectionKey = 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile';
 
 interface NavItem {
   key: SectionKey;
@@ -40,6 +45,7 @@ const DashboardPage: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [isConsolidacionesOpen, setIsConsolidacionesOpen] = useState(false);
+  const [isClientesOpen, setIsClientesOpen] = useState(false);
 
   // Items de navegación para consolidaciones
   const consolidacionesItems: NavItem[] = [
@@ -63,6 +69,22 @@ const DashboardPage: React.FC = () => {
     },
   ];
 
+  // Items de navegación para clientes
+  const clientesItems: NavItem[] = [
+    {
+      key: 'clients-view',
+      label: 'Ver y Añadir',
+      icon: UserPlus,
+      component: ClientsViewSection,
+    },
+    {
+      key: 'clients-profile',
+      label: 'Perfil de Cliente',
+      icon: UserCheck,
+      component: ClientsProfileSection,
+    },
+  ];
+
   // Items de navegación independientes
   const independentNavItems: NavItem[] = [
     {
@@ -82,7 +104,7 @@ const DashboardPage: React.FC = () => {
   }] : [];
 
   // Todos los items disponibles (para encontrar el componente activo)
-  const allNavItems: NavItem[] = [...consolidacionesItems, ...independentNavItems, ...adminItems];
+  const allNavItems: NavItem[] = [...consolidacionesItems, ...clientesItems, ...independentNavItems, ...adminItems];
 
   // Actualizar reloj cada segundo
   useEffect(() => {
@@ -182,6 +204,57 @@ const DashboardPage: React.FC = () => {
                           onClick={() => {
                             setActiveSection(item.key);
                             setIsConsolidacionesOpen(false);
+                          }}
+                          className={`
+                            w-full flex items-center space-x-3 px-4 py-2 text-sm transition-colors text-left
+                            ${activeSection === item.key
+                              ? 'bg-primary-50 text-primary-700'
+                              : 'text-gray-700 hover:bg-gray-50'
+                            }
+                          `}
+                        >
+                          <IconComponent className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Menú dropdown de Clientes */}
+              <div className="relative">
+                <button
+                  onMouseEnter={() => setIsClientesOpen(true)}
+                  onMouseLeave={() => setIsClientesOpen(false)}
+                  className={`
+                    flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                    ${clientesItems.some(item => item.key === activeSection)
+                      ? 'bg-primary-100 text-primary-700 border border-primary-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Clientes</span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+
+                {/* Dropdown menu */}
+                {isClientesOpen && (
+                  <div
+                    className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                    onMouseEnter={() => setIsClientesOpen(true)}
+                    onMouseLeave={() => setIsClientesOpen(false)}
+                  >
+                    {clientesItems.map((item) => {
+                      const IconComponent = item.icon;
+                      return (
+                        <button
+                          key={item.key}
+                          onClick={() => {
+                            setActiveSection(item.key);
+                            setIsClientesOpen(false);
                           }}
                           className={`
                             w-full flex items-center space-x-3 px-4 py-2 text-sm transition-colors text-left

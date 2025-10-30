@@ -121,6 +121,15 @@ export interface SystemLog {
   description: string;
   ip_address?: string;
   created_at: string;
+  // Campos amigables para bitácora
+  formatted_title?: string;
+  formatted_message?: string;
+  category?: string;
+  priority?: 'critico' | 'alerta' | 'importante' | 'normal' | 'bajo';
+  category_icon?: string;
+  priority_color?: string;
+  friendly_date?: string;
+  location_info?: string;
 }
 
 // Tipos para respuestas de API
