@@ -119,10 +119,28 @@ const formatLogAction = (action, description, username, userData = {}) => {
 
     // Actividades generales
     'API_REQUEST': {
-      title: 'Solicitud de API',
-      message: `${username || 'Usuario'} realizó una consulta al sistema`,
-      category: 'Actividad',
+      title: 'Consulta del Sistema',
+      message: `${username || 'Usuario'} accedió a una funcionalidad del sistema`,
+      category: 'Navegación',
       priority: 'bajo'
+    },
+    'SYSTEM_AUDIT': {
+      title: 'Consulta de Bitácora',
+      message: `${username} consultó los registros de la bitácora del sistema`,
+      category: 'Auditoría',
+      priority: 'normal'
+    },
+    'USER_LIST': {
+      title: 'Consulta de Usuarios',
+      message: `${username} consultó la lista de usuarios del sistema`,
+      category: 'Usuarios',
+      priority: 'normal'
+    },
+    'FILE_VIEW': {
+      title: 'Consulta de Archivos',
+      message: `${username} consultó el historial de archivos subidos`,
+      category: 'Archivos',
+      priority: 'normal'
     },
     'DATA_EXPORT': {
       title: 'Exportación de Datos',
@@ -167,6 +185,8 @@ const getCategoryIcon = (category) => {
     'Error': '❌',
     'Datos': '💾',
     'Actividad': '📋',
+    'Navegación': '🧭',
+    'Auditoría': '🔍',
     'General': '📝'
   };
   
