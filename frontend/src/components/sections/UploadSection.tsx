@@ -92,11 +92,11 @@ const UploadSection: React.FC = () => {
     // Si es una celda de fórmula, calcular el valor dinámicamente
     if (field === 'debe' && fila.formulaDebe) {
       switch (index) {
-        case 0: // Caja y Bancos DEBE = SUMA(B8:B48)
+        case 0: // Caja y Bancos DEBE
           return datos.slice(6, 42).reduce((sum, item) => sum + getNumericValue(item.debe), 0);
-        case 7: // I.S.V. 15% Compras = B13*15%
+        case 7: // I.S.V. 15% Compras
           return getNumericValue(datos[6].debe) * 0.15;
-        case 9: // I.S.V. 18% Compras = B15*18%
+        case 9: // I.S.V. 18% Compras
           return getNumericValue(datos[8].debe) * 0.18;
         default:
           return getNumericValue(fila.debe);
@@ -105,11 +105,11 @@ const UploadSection: React.FC = () => {
     
     if (field === 'haber' && fila.formulaHaber) {
       switch (index) {
-        case 0: // Caja y Bancos HABER = SUMA(C8:C48)
+        case 0: // Caja y Bancos HABER
           return datos.slice(6, 42).reduce((sum, item) => sum + getNumericValue(item.haber), 0);
-        case 2: // I.S.V. 15% Ventas = C8*15%
+        case 2: // I.S.V. 15% Venta
           return getNumericValue(datos[1].haber) * 0.15;
-        case 4: // I.S.V. 18% Ventas = C10*18%
+        case 4: // I.S.V. 18% Ventas
           return getNumericValue(datos[3].haber) * 0.18;
         default:
           return getNumericValue(fila.haber);

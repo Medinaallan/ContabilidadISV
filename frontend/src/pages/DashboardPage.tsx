@@ -115,6 +115,20 @@ const DashboardPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Cerrar dropdowns al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        setIsConsolidacionesOpen(false);
+        setIsClientesOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Cargar datos iniciales
   useEffect(() => {
     const loadInitialData = async () => {
@@ -172,13 +186,12 @@ const DashboardPage: React.FC = () => {
             {/* Navegación principal */}
             <nav className="flex space-x-1">
               {/* Menú dropdown de Consolidaciones */}
-              <div className="relative">
+              <div className="relative dropdown-container">
                 <button
-                  onMouseEnter={() => setIsConsolidacionesOpen(true)}
-                  onMouseLeave={() => setIsConsolidacionesOpen(false)}
+                  onClick={() => setIsConsolidacionesOpen(!isConsolidacionesOpen)}
                   className={`
                     flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${consolidacionesItems.some(item => item.key === activeSection)
+                    ${consolidacionesItems.some(item => item.key === activeSection) || isConsolidacionesOpen
                       ? 'bg-primary-100 text-primary-700 border border-primary-200'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }
@@ -186,16 +199,12 @@ const DashboardPage: React.FC = () => {
                 >
                   <FileText className="h-4 w-4" />
                   <span>Consolidaciones</span>
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown className={`h-3 w-3 transition-transform ${isConsolidacionesOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown menu */}
                 {isConsolidacionesOpen && (
-                  <div
-                    className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
-                    onMouseEnter={() => setIsConsolidacionesOpen(true)}
-                    onMouseLeave={() => setIsConsolidacionesOpen(false)}
-                  >
+                  <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                     {consolidacionesItems.map((item) => {
                       const IconComponent = item.icon;
                       return (
@@ -223,13 +232,12 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {/* Menú dropdown de Clientes */}
-              <div className="relative">
+              <div className="relative dropdown-container">
                 <button
-                  onMouseEnter={() => setIsClientesOpen(true)}
-                  onMouseLeave={() => setIsClientesOpen(false)}
+                  onClick={() => setIsClientesOpen(!isClientesOpen)}
                   className={`
                     flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${clientesItems.some(item => item.key === activeSection)
+                    ${clientesItems.some(item => item.key === activeSection) || isClientesOpen
                       ? 'bg-primary-100 text-primary-700 border border-primary-200'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }
@@ -237,16 +245,12 @@ const DashboardPage: React.FC = () => {
                 >
                   <Users className="h-4 w-4" />
                   <span>Clientes</span>
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown className={`h-3 w-3 transition-transform ${isClientesOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown menu */}
                 {isClientesOpen && (
-                  <div
-                    className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
-                    onMouseEnter={() => setIsClientesOpen(true)}
-                    onMouseLeave={() => setIsClientesOpen(false)}
-                  >
+                  <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                     {clientesItems.map((item) => {
                       const IconComponent = item.icon;
                       return (

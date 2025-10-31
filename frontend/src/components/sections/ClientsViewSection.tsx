@@ -1,19 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Search, Plus, Edit, Eye, Trash2, Phone, Mail, MapPin } from 'lucide-react';
+import { User, Search, Plus, Edit, Eye, Trash2, Phone, Mail, MapPin, Upload } from 'lucide-react';
 import Loading from '@/components/Loading';
 import toast from 'react-hot-toast';
-
-interface Cliente {
-  id: number;
-  nombre: string;
-  apellido: string;
-  email: string;
-  telefono: string;
-  direccion: string;
-  empresa?: string;
-  fechaRegistro: string;
-  activo: boolean;
-}
+import { clientesApi, Cliente, ClienteCreateData, ClienteUpdateData } from '@/services/api';
 
 const ClientsViewSection: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -22,89 +11,61 @@ const ClientsViewSection: React.FC = () => {
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Cliente | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  // Datos de ejemplo (más tarde conectar con API)
-  const clientesEjemplo: Cliente[] = [
-    {
-      id: 1,
-      nombre: 'Juan',
-      apellido: 'Pérez',
-      email: 'juan.perez@example.com',
-      telefono: '555-0123',
-      direccion: 'Calle Principal 123, Ciudad',
-      empresa: 'Empresa ABC',
-      fechaRegistro: '2024-01-15',
-      activo: true
-    },
-    {
-      id: 2,
-      nombre: 'María',
-      apellido: 'González',
-      email: 'maria.gonzalez@example.com',
-      telefono: '555-0456',
-      direccion: 'Avenida Central 456, Ciudad',
-      empresa: 'Servicios XYZ',
-      fechaRegistro: '2024-02-20',
-      activo: true
-    },
-    {
-      id: 3,
-      nombre: 'Carlos',
-      apellido: 'Rodriguez',
-      email: 'carlos.rodriguez@example.com',
-      telefono: '555-0789',
-      direccion: 'Boulevard Norte 789, Ciudad',
-      fechaRegistro: '2024-03-10',
-      activo: false
+  // Cargar clientes desde la API
+  const loadClientes = async () => {
+    try {
+      setIsLoading(true);
+      const response = await clientesApi.getAll();
+      setClientes(response.clientes || []);
+    } catch (error) {
+      console.error('Error cargando clientes:', error);
+      toast.error('Error cargando clientes');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
-  // Cargar clientes
   useEffect(() => {
-    const loadClientes = async () => {
-      try {
-        setIsLoading(true);
-        // Simular carga de API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setClientes(clientesEjemplo);
-      } catch (error) {
-        toast.error('Error cargando clientes');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadClientes();
   }, []);
 
   // Filtrar clientes
   useEffect(() => {
     const filtered = clientes.filter(cliente => 
-      cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.empresa?.toLowerCase().includes(searchTerm.toLowerCase())
+      cliente.nombre_empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.rtn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.rubro.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.representante.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredClientes(filtered);
   }, [clientes, searchTerm]);
 
   const handleAddClient = () => {
     setEditingClient(null);
+    setLogoFile(null);
+    setLogoPreview(null);
     setShowAddModal(true);
   };
 
   const handleEditClient = (cliente: Cliente) => {
     setEditingClient(cliente);
+    setLogoFile(null);
+    setLogoPreview(cliente.logo_url || null);
     setShowAddModal(true);
   };
 
   const handleDeleteClient = async (id: number) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+    if (window.confirm('¿Estás seguro de que quieres desactivar este cliente?')) {
       try {
-        // Aquí iría la llamada a la API
-        setClientes(clientes.filter(c => c.id !== id));
-        toast.success('Cliente eliminado correctamente');
+        await clientesApi.delete(id);
+        await loadClientes(); // Recargar la lista
+        toast.success('Cliente desactivado correctamente');
       } catch (error) {
+        console.error('Error eliminando cliente:', error);
         toast.error('Error eliminando cliente');
       }
     }
@@ -112,13 +73,71 @@ const ClientsViewSection: React.FC = () => {
 
   const handleToggleStatus = async (id: number) => {
     try {
-      // Aquí iría la llamada a la API
-      setClientes(clientes.map(c => 
-        c.id === id ? { ...c, activo: !c.activo } : c
-      ));
+      await clientesApi.toggleStatus(id);
+      await loadClientes(); // Recargar la lista
       toast.success('Estado del cliente actualizado');
     } catch (error) {
+      console.error('Error actualizando estado:', error);
       toast.error('Error actualizando estado del cliente');
+    }
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        toast.error('El archivo no debe superar 5MB');
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast.error('Solo se permiten archivos de imagen');
+        return;
+      }
+
+      setLogoFile(file);
+      
+      // Crear preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmitClient = async (formData: FormData) => {
+    try {
+      const isEditing = editingClient !== null;
+      
+      const clienteData: ClienteCreateData = {
+        nombre_empresa: formData.get('nombre_empresa') as string,
+        rtn: formData.get('rtn') as string,
+        rubro: formData.get('rubro') as string,
+        representante: formData.get('representante') as string,
+        telefono: formData.get('telefono') as string,
+        email: formData.get('email') as string,
+        direccion: formData.get('direccion') as string,
+      };
+
+      if (logoFile) {
+        clienteData.logo = logoFile;
+      }
+
+      if (isEditing) {
+        await clientesApi.update(editingClient.id, clienteData as ClienteUpdateData);
+      } else {
+        await clientesApi.create(clienteData);
+      }
+
+      await loadClientes(); // Recargar la lista
+      setShowAddModal(false);
+      setLogoFile(null);
+      setLogoPreview(null);
+      toast.success(`Cliente ${isEditing ? 'actualizado' : 'creado'} correctamente`);
+    } catch (error) {
+      console.error('Error guardando cliente:', error);
+      toast.error(error instanceof Error ? error.message : 'Error guardando cliente');
     }
   };
 
@@ -202,9 +221,10 @@ const ClientsViewSection: React.FC = () => {
                   <th className="table-header">
                     <div className="flex items-center space-x-2">
                       <User className="h-4 w-4" />
-                      <span>Cliente</span>
+                      <span>Empresa</span>
                     </div>
                   </th>
+                  <th className="table-header">RTN / Rubro</th>
                   <th className="table-header">
                     <div className="flex items-center space-x-2">
                       <Mail className="h-4 w-4" />
@@ -225,13 +245,36 @@ const ClientsViewSection: React.FC = () => {
                 {filteredClientes.map((cliente) => (
                   <tr key={cliente.id} className="hover:bg-gray-50">
                     <td className="table-cell">
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {cliente.nombre} {cliente.apellido}
-                        </div>
-                        {cliente.empresa && (
-                          <div className="text-sm text-gray-500">{cliente.empresa}</div>
+                      <div className="flex items-center space-x-3">
+                        {cliente.logo_url ? (
+                          <img 
+                            src={`${process.env.REACT_APP_API_URL || 'http://localhost:3002'}${cliente.logo_url}`}
+                            alt={`Logo de ${cliente.nombre_empresa}`}
+                            className="h-10 w-10 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                            <User className="h-5 w-5 text-gray-400" />
+                          </div>
                         )}
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {cliente.nombre_empresa}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {cliente.representante}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="table-cell">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium text-gray-900">
+                          {cliente.rtn}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {cliente.rubro}
+                        </div>
                       </div>
                     </td>
                     <td className="table-cell">
@@ -247,7 +290,7 @@ const ClientsViewSection: React.FC = () => {
                       </div>
                     </td>
                     <td className="table-cell">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 max-w-xs truncate">
                         {cliente.direccion}
                       </div>
                     </td>
@@ -299,98 +342,171 @@ const ClientsViewSection: React.FC = () => {
       {/* Modal para agregar/editar cliente */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               {editingClient ? 'Editar Cliente' : 'Agregar Nuevo Cliente'}
             </h3>
             
-            <form className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                if (logoFile) {
+                  formData.append('logo', logoFile);
+                }
+                handleSubmitClient(formData);
+              }}
+              className="space-y-4"
+            >
+              {/* Logo del negocio */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Logo del Negocio
+                </label>
+                <div className="flex items-center space-x-4">
+                  {logoPreview && (
+                    <img 
+                      src={logoPreview}
+                      alt="Preview del logo"
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
+                  )}
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <label 
+                      htmlFor="logo-upload"
+                      className="btn-secondary cursor-pointer inline-flex items-center space-x-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span>Seleccionar Logo</span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Máximo 5MB. Formatos: JPG, PNG, GIF
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre
+                    Nombre de la Empresa *
                   </label>
                   <input
                     type="text"
+                    name="nombre_empresa"
+                    required
                     className="input-field"
-                    defaultValue={editingClient?.nombre || ''}
+                    defaultValue={editingClient?.nombre_empresa || ''}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Apellido
+                    R.T.N. *
                   </label>
                   <input
                     type="text"
+                    name="rtn"
+                    required
+                    placeholder="Ej: 08019999999999"
                     className="input-field"
-                    defaultValue={editingClient?.apellido || ''}
+                    defaultValue={editingClient?.rtn || ''}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rubro *
+                  </label>
+                  <input
+                    type="text"
+                    name="rubro"
+                    required
+                    placeholder="Ej: Comercio, Servicios, Industria"
+                    className="input-field"
+                    defaultValue={editingClient?.rubro || ''}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Representante *
+                  </label>
+                  <input
+                    type="text"
+                    name="representante"
+                    required
+                    className="input-field"
+                    defaultValue={editingClient?.representante || ''}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Teléfono *
+                  </label>
+                  <input
+                    type="tel"
+                    name="telefono"
+                    required
+                    placeholder="Ej: 2234-5678"
+                    className="input-field"
+                    defaultValue={editingClient?.telefono || ''}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Correo Electrónico *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    className="input-field"
+                    defaultValue={editingClient?.email || ''}
                   />
                 </div>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  className="input-field"
-                  defaultValue={editingClient?.email || ''}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  className="input-field"
-                  defaultValue={editingClient?.telefono || ''}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Empresa (Opcional)
-                </label>
-                <input
-                  type="text"
-                  className="input-field"
-                  defaultValue={editingClient?.empresa || ''}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dirección
+                  Dirección *
                 </label>
                 <textarea
+                  name="direccion"
+                  required
                   className="input-field"
-                  rows={2}
+                  rows={3}
+                  placeholder="Dirección completa del negocio"
                   defaultValue={editingClient?.direccion || ''}
                 />
               </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="btn-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                >
+                  {editingClient ? 'Actualizar' : 'Crear Cliente'}
+                </button>
+              </div>
             </form>
-            
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="btn-secondary"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  // Aquí iría la lógica para guardar
-                  toast.success(`Cliente ${editingClient ? 'actualizado' : 'creado'} correctamente`);
-                  setShowAddModal(false);
-                }}
-                className="btn-primary"
-              >
-                {editingClient ? 'Actualizar' : 'Agregar'}
-              </button>
-            </div>
           </div>
         </div>
       )}

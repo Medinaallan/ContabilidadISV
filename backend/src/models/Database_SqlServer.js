@@ -142,7 +142,6 @@ class Database {
       throw this.handleSqlError(error);
     }
   }
-
   async updateUser(id, updateData) {
     try {
       const fields = [];

@@ -14,6 +14,7 @@ const fileRoutes = require('./src/routes/files');
 const reportsRoutes = require('./src/routes/reports');
 const logsRoutes = require('./src/routes/logs');
 const userRoutes = require('./src/routes/users');
+const clienteRoutes = require('./src/routes/clientes');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -78,6 +79,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/clientes', clienteRoutes);
 
 // Ruta de salud del servidor
 app.get('/api/health', (req, res) => {
@@ -146,6 +148,7 @@ const server = app.listen(PORT, HOST, async () => {
     console.log(`   - API Files: http://${localIP}:${PORT}/api/files`);
     console.log(`   - API Reports: http://${localIP}:${PORT}/api/reports`);
     console.log(`   - API Logs: http://${localIP}:${PORT}/api/logs`);
+    console.log(`   - API Clientes: http://${localIP}:${PORT}/api/clientes`);
     console.log('');
     console.log('⚙️  Configuración:');
     console.log(`   - Entorno: ${process.env.NODE_ENV || 'development'}`);

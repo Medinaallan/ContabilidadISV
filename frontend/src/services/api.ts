@@ -281,5 +281,155 @@ export const tokenUtils = {
   }
 };
 
+// ============================================================================
+// CLIENTES API
+// ============================================================================
+
+export interface Cliente {
+  id: number;
+  nombre_empresa: string;
+  rtn: string;
+  rubro: string;
+  representante: string;
+  telefono: string;
+  email: string;
+  direccion: string;
+  logo_url?: string;
+  activo: boolean;
+  fecha_registro: string;
+  fecha_actualizacion: string;
+  usuario_creador?: string;
+}
+
+export interface ClienteCreateData {
+  nombre_empresa: string;
+  rtn: string;
+  rubro: string;
+  representante: string;
+  telefono: string;
+  email: string;
+  direccion: string;
+  logo?: File;
+}
+
+export interface ClienteUpdateData extends Partial<ClienteCreateData> {
+  activo?: boolean;
+}
+
+export interface ClientesResponse {
+  success: boolean;
+  clientes: Cliente[];
+  total: number;
+}
+
+export interface ClienteResponse {
+  success: boolean;
+  cliente: Cliente;
+}
+
+export interface ClienteStatsResponse {
+  success: boolean;
+  estadisticas: {
+    total: number;
+    activos: number;
+    inactivos: number;
+    rubros_diferentes: number;
+  };
+}
+
+export const clientesApi = {
+  // Obtener todos los clientes
+  getAll: async (activo?: boolean, search?: string): Promise<ClientesResponse> => {
+    const params = new URLSearchParams();
+    if (activo !== undefined) params.append('activo', activo.toString());
+    if (search) params.append('search', search);
+    
+    const response: AxiosResponse<ClientesResponse> = await api.get(
+      `/clientes${params.toString() ? `?${params.toString()}` : ''}`
+    );
+    return response.data;
+  },
+
+  // Obtener cliente por ID
+  getById: async (id: number): Promise<ClienteResponse> => {
+    const response: AxiosResponse<ClienteResponse> = await api.get(`/clientes/${id}`);
+    return response.data;
+  },
+
+  // Crear nuevo cliente
+  create: async (clienteData: ClienteCreateData): Promise<ClienteResponse> => {
+    const formData = new FormData();
+    
+    // Agregar campos de texto
+    formData.append('nombre_empresa', clienteData.nombre_empresa);
+    formData.append('rtn', clienteData.rtn);
+    formData.append('rubro', clienteData.rubro);
+    formData.append('representante', clienteData.representante);
+    formData.append('telefono', clienteData.telefono);
+    formData.append('email', clienteData.email);
+    formData.append('direccion', clienteData.direccion);
+    
+    // Agregar logo si existe
+    if (clienteData.logo) {
+      formData.append('logo', clienteData.logo);
+    }
+
+    const response: AxiosResponse<ClienteResponse> = await api.post('/clientes', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Actualizar cliente
+  update: async (id: number, clienteData: ClienteUpdateData): Promise<ClienteResponse> => {
+    const formData = new FormData();
+    
+    // Agregar solo los campos que se van a actualizar
+    Object.entries(clienteData).forEach(([key, value]) => {
+      if (value !== undefined && key !== 'logo') {
+        formData.append(key, value.toString());
+      }
+    });
+    
+    // Agregar logo si existe
+    if (clienteData.logo) {
+      formData.append('logo', clienteData.logo);
+    }
+
+    const response: AxiosResponse<ClienteResponse> = await api.put(`/clientes/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Cambiar estado del cliente
+  toggleStatus: async (id: number): Promise<ClienteResponse> => {
+    const response: AxiosResponse<ClienteResponse> = await api.patch(`/clientes/${id}/toggle-status`);
+    return response.data;
+  },
+
+  // Eliminar cliente (soft delete)
+  delete: async (id: number): Promise<{ success: boolean; message: string }> => {
+    const response: AxiosResponse<{ success: boolean; message: string }> = await api.delete(`/clientes/${id}`);
+    return response.data;
+  },
+
+  // Eliminar cliente permanentemente (solo admin)
+  deleteHard: async (id: number): Promise<{ success: boolean; message: string }> => {
+    const response: AxiosResponse<{ success: boolean; message: string }> = await api.delete(`/clientes/${id}/hard`);
+    return response.data;
+  },
+
+  // Obtener estadísticas de clientes
+  getStats: async (): Promise<ClienteStatsResponse> => {
+    const response: AxiosResponse<ClienteStatsResponse> = await api.get('/clientes/stats');
+    return response.data;
+  }
+};
+
 // Exportar la instancia de axios para uso directo
 export { api };
