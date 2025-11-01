@@ -254,35 +254,24 @@ const UploadSection: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Encabezado */}
-      <div className={`card text-center ${!clienteSeleccionado ? 'border-orange-300 bg-orange-50' : ''}`}>
-        <div className="space-y-2">
-          {!clienteSeleccionado ? (
-            <>
-              <h2 className="text-xl font-bold text-orange-900">
-                ⚠ DEBE SELECCIONAR UN CLIENTE PARA CONTINUAR
-              </h2>
-              <p className="text-lg font-semibold text-orange-700">
-                Haga clic en "Nueva Consolidación" para comenzar
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl font-bold text-gray-900">
-                CLIENTE: {clienteSeleccionado.nombre}
-              </h2>
-              <p className="text-lg font-semibold text-gray-700">
-                RTN: {clienteSeleccionado.rtn}
-              </p>
-              <p className="text-md text-gray-600">
-                Período: {periodo.fechaInicio && periodo.fechaFin 
-                  ? `Del ${periodo.fechaInicio} al ${periodo.fechaFin}` 
-                  : 'Sin período definido'}
-              </p>
-            </>
-          )}
+      {/* Encabezado - Solo mostrar cuando hay cliente seleccionado */}
+      {clienteSeleccionado && (
+        <div className="card text-center">
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-gray-900">
+              CLIENTE: {clienteSeleccionado.nombre}
+            </h2>
+            <p className="text-lg font-semibold text-gray-700">
+              RTN: {clienteSeleccionado.rtn}
+            </p>
+            <p className="text-md text-gray-600">
+              Período: {periodo.fechaInicio && periodo.fechaFin 
+                ? `Del ${periodo.fechaInicio} al ${periodo.fechaFin}` 
+                : 'Sin período definido'}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tabla de consolidación */}
       {clienteSeleccionado ? (

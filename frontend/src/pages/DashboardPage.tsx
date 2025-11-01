@@ -13,7 +13,6 @@ import {
   ChevronDown,
   FileText,
   UserPlus,
-  Eye,
   UserCheck
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +20,7 @@ import Loading from '@/components/Loading';
 import toast from 'react-hot-toast';
 
 // Importar componentes de secciones
+import HomeSection from '@/components/sections/HomeSection';
 import UploadSection from '@/components/sections/UploadSection';
 import HistorySection from '@/components/sections/HistorySection';
 import ReportsSection from '@/components/sections/ReportsSection';
@@ -30,7 +30,7 @@ import ClientsViewSection from '@/components/sections/ClientsViewSection';
 import ClientsProfileSection from '@/components/sections/ClientsProfileSection';
 
 // Tipos para las secciones
-type SectionKey = 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile';
+type SectionKey = 'home' | 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile';
 
 interface NavItem {
   key: SectionKey;
@@ -41,7 +41,7 @@ interface NavItem {
 
 const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
-  const [activeSection, setActiveSection] = useState<SectionKey>('upload');
+  const [activeSection, setActiveSection] = useState<SectionKey>('home');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [isConsolidacionesOpen, setIsConsolidacionesOpen] = useState(false);
@@ -103,8 +103,16 @@ const DashboardPage: React.FC = () => {
     component: UsersSection,
   }] : [];
 
+  // Items especiales (home no aparece en el menú, es la página por defecto)
+  const homeItem: NavItem = {
+    key: 'home',
+    label: 'Inicio',
+    icon: BarChart3,
+    component: HomeSection,
+  };
+
   // Todos los items disponibles (para encontrar el componente activo)
-  const allNavItems: NavItem[] = [...consolidacionesItems, ...clientesItems, ...independentNavItems, ...adminItems];
+  const allNavItems: NavItem[] = [homeItem, ...consolidacionesItems, ...clientesItems, ...independentNavItems, ...adminItems];
 
   // Actualizar reloj cada segundo
   useEffect(() => {
@@ -185,6 +193,21 @@ const DashboardPage: React.FC = () => {
 
             {/* Navegación principal */}
             <nav className="flex space-x-1">
+              {/* Botón de Inicio */}
+              <button
+                onClick={() => setActiveSection('home')}
+                className={`
+                  flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${activeSection === 'home'
+                    ? 'bg-primary-100 text-primary-700 border border-primary-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }
+                `}
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>Inicio</span>
+              </button>
+
               {/* Menú dropdown de Consolidaciones */}
               <div className="relative dropdown-container">
                 <button
