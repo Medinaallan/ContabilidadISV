@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Save, Download, RefreshCw, Database, Plus, X, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -12,18 +12,28 @@ interface CuentaContable {
 
 interface Cliente {
   id: number;
-  nombre: string;
+  nombre_empresa: string;
   rtn: string;
+  rubro?: string;
+  representante?: string;
+  telefono?: string;
+  email?: string;
+  direccion?: string;
+  logo_url?: string;
+  activo?: boolean;
+  fecha_registro?: string;
+  fecha_actualizacion?: string;
 }
 
 const UploadSection: React.FC = () => {
   // Datos iniciales de la tabla contable
   const datosIniciales: CuentaContable[] = [
-    { cuenta: "Caja y Bancos", debe: "", haber: "", formulaDebe: true, formulaHaber: true }, // =SUMA(B8:B48) y =SUMA(C8:C48)
+    { cuenta: "Caja y Bancos", debe: "", haber: "", formulaDebe: true, formulaHaber: true }, // DEBE=suma HABER de todas las cuentas, HABER=suma DEBE de todas las cuentas
     { cuenta: "Ventas Gravadas 15%", debe: "", haber: "", formulaDebe: false, formulaHaber: false },
     { cuenta: "I.S.V. 15%", debe: "", haber: "", formulaDebe: false, formulaHaber: true }, // =C8*15%
     { cuenta: "Ventas Gravadas 18%", debe: "", haber: "", formulaDebe: false, formulaHaber: false },
     { cuenta: "I.S.V. 18%", debe: "", haber: "", formulaDebe: false, formulaHaber: true }, // =C10*18%
+    { cuenta: "I.S.T. 4%", debe: "", haber: "", formulaDebe: false, formulaHaber: true }, // =C2*4% (4% de Ventas Gravadas 15%)
     { cuenta: "Ventas Exentas", debe: "", haber: "", formulaDebe: false, formulaHaber: false },
     { cuenta: "Compras Gravadas 15%", debe: "", haber: "", formulaDebe: false, formulaHaber: false },
     { cuenta: "I.S.V. 15%", debe: "", haber: "", formulaDebe: true, formulaHaber: false }, // =B13*15%
@@ -66,20 +76,17 @@ const UploadSection: React.FC = () => {
   const [datos, setDatos] = useState<CuentaContable[]>(datosIniciales);
   const [totales, setTotales] = useState({ debe: 0, haber: 0 });
   const [isLoading, setIsLoading] = useState(false);
-  const [showModal, setShowModal] = useState(true); // Iniciar con modal abierto
+  const [showModal, setShowModal] = useState(false); // Cambiar a false para que no se abra automáticamente
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', rtn: '' });
   const [periodo, setPeriodo] = useState({ 
     fechaInicio: '', 
     fechaFin: '' 
   });
-
-  // Lista de clientes existentes (esto vendría del backend)
-  const clientesExistentes: Cliente[] = [
-    { id: 1, nombre: "INVERSIONES DIVERSAS", rtn: "10061984254183" },
-    { id: 2, nombre: "COMERCIAL HONDUREÑA S.A.", rtn: "08019840001234" },
-    { id: 3, nombre: "SERVICIOS INTEGRALES", rtn: "05011975005678" },
-  ];
+  const [clientesExistentes, setClientesExistentes] = useState<Cliente[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const [clienteSeleccionadoId, setClienteSeleccionadoId] = useState<string>('');
+  const [tipoRubro, setTipoRubro] = useState<'GENERALES' | 'HOTELES' | ''>('');
 
   // Función helper para convertir valores a número
   const getNumericValue = (value: number | string): number => {
@@ -92,12 +99,20 @@ const UploadSection: React.FC = () => {
     // Si es una celda de fórmula, calcular el valor dinámicamente
     if (field === 'debe' && fila.formulaDebe) {
       switch (index) {
-        case 0: // Caja y Bancos DEBE
-          return datos.slice(6, 42).reduce((sum, item) => sum + getNumericValue(item.debe), 0);
-        case 7: // I.S.V. 15% Compras
-          return getNumericValue(datos[6].debe) * 0.15;
-        case 9: // I.S.V. 18% Compras
-          return getNumericValue(datos[8].debe) * 0.18;
+        case 0: // Caja y Bancos DEBE = suma TODA la columna HABER (Ventas Gravadas 15%, I.S.V. 15%, Ventas Gravadas 18%, I.S.V. 18%, I.S.T. 4%, Ventas Exentas, etc. hasta Gastos Varios)
+          return datos.slice(1, 44).reduce((sum, item, idx) => {
+            const realIndex = idx + 1; // Ajustar índice porque slice empieza en 1
+            // Excluir I.S.T. 4% si es GENERALES
+            if (tipoRubro === 'GENERALES' && realIndex === 5) {
+              return sum;
+            }
+            // Usar getValueForDisplay para incluir valores calculados por fórmulas
+            return sum + getValueForDisplay(item, realIndex, 'haber');
+          }, 0);
+        case 8: // I.S.V. 15% Compras
+          return getNumericValue(datos[7].debe) * 0.15;
+        case 10: // I.S.V. 18% Compras
+          return getNumericValue(datos[9].debe) * 0.18;
         default:
           return getNumericValue(fila.debe);
       }
@@ -105,12 +120,22 @@ const UploadSection: React.FC = () => {
     
     if (field === 'haber' && fila.formulaHaber) {
       switch (index) {
-        case 0: // Caja y Bancos HABER
-          return datos.slice(6, 42).reduce((sum, item) => sum + getNumericValue(item.haber), 0);
+        case 0: // Caja y Bancos HABER = suma TODA la columna DEBE (Ventas Gravadas 15%, I.S.V. 15%, Ventas Gravadas 18%, I.S.V. 18%, I.S.T. 4%, Ventas Exentas, etc. hasta Gastos Varios)
+          return datos.slice(1, 44).reduce((sum, item, idx) => {
+            const realIndex = idx + 1; // Ajustar índice porque slice empieza en 1
+            // Excluir I.S.T. 4% si es GENERALES
+            if (tipoRubro === 'GENERALES' && realIndex === 5) {
+              return sum;
+            }
+            // Usar getValueForDisplay para incluir valores calculados por fórmulas
+            return sum + getValueForDisplay(item, realIndex, 'debe');
+          }, 0);
         case 2: // I.S.V. 15% Venta
           return getNumericValue(datos[1].haber) * 0.15;
         case 4: // I.S.V. 18% Ventas
           return getNumericValue(datos[3].haber) * 0.18;
+        case 5: // I.S.T. 4% Hoteles - Se calcula sobre Ventas Gravadas 15%
+          return getNumericValue(datos[1].haber) * 0.04;
         default:
           return getNumericValue(fila.haber);
       }
@@ -139,6 +164,66 @@ const UploadSection: React.FC = () => {
       maximumFractionDigits: 2
     }).format(num);
   };
+
+  // Cargar clientes desde la base de datos
+  const cargarClientes = useCallback(async () => {
+    console.log('Iniciando carga de clientes...');
+    setLoadingClientes(true);
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token encontrado:', token ? 'Sí' : 'No');
+      
+      const response = await fetch('/api/clientes?activo=true', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Respuesta del servidor:', response.status);
+
+      if (!response.ok) {
+        throw new Error('Error al cargar clientes');
+      }
+
+      const data = await response.json();
+      console.log('Respuesta completa:', data);
+      
+      // El backend devuelve { success: true, clientes: [...], total: n }
+      if (data.success && Array.isArray(data.clientes)) {
+        console.log('Clientes cargados:', data.clientes.length);
+        console.log('Primer cliente:', data.clientes[0]); // Ver estructura del primer cliente
+        setClientesExistentes(data.clientes);
+      } else {
+        console.warn('Respuesta inesperada del servidor:', data);
+        setClientesExistentes([]);
+      }
+    } catch (error) {
+      console.error('Error obteniendo clientes:', error);
+      toast.error('Error al cargar la lista de clientes');
+      // Mantener algunos clientes de ejemplo si falla la carga
+      console.log('Usando clientes de ejemplo...');
+      setClientesExistentes([
+        
+      ]);
+    } finally {
+      setLoadingClientes(false);
+      console.log('Carga de clientes completada');
+    }
+  }, []);
+
+  // Cargar clientes al abrir el modal
+  useEffect(() => {
+    console.log('useEffect - showModal cambió a:', showModal);
+    if (showModal && clientesExistentes.length === 0) {
+      console.log('Cargando clientes...');
+      try {
+        cargarClientes();
+      } catch (error) {
+        console.error('Error en useEffect cargarClientes:', error);
+      }
+    }
+  }, [showModal]); // No agregamos clientesExistentes aquí para evitar bucle
 
   // Manejar cambios en las celdas
   const handleCellChange = (index: number, field: 'debe' | 'haber', value: string) => {
@@ -191,12 +276,19 @@ const UploadSection: React.FC = () => {
 
   // Nueva consolidación
   const handleNuevaConsolidacion = () => {
+    console.log('Abriendo modal de nueva consolidación...');
     setShowModal(true);
   };
 
   // Seleccionar cliente existente
-  const handleSeleccionarCliente = (cliente: Cliente) => {
-    setClienteSeleccionado(cliente);
+  const handleSeleccionarCliente = (clienteId: string) => {
+    setClienteSeleccionadoId(clienteId);
+    const cliente = clientesExistentes.find(c => c.id.toString() === clienteId);
+    if (cliente) {
+      setClienteSeleccionado(cliente);
+    } else {
+      setClienteSeleccionado(null);
+    }
   };
 
   // Crear nuevo cliente
@@ -208,7 +300,7 @@ const UploadSection: React.FC = () => {
     
     const cliente: Cliente = {
       id: Date.now(), // ID temporal
-      nombre: nuevoCliente.nombre.toUpperCase(),
+      nombre_empresa: nuevoCliente.nombre.toUpperCase(),
       rtn: nuevoCliente.rtn
     };
     
@@ -218,7 +310,7 @@ const UploadSection: React.FC = () => {
 
   // Iniciar consolidación
   const handleIniciarConsolidacion = () => {
-    console.log('Iniciando consolidación...', { clienteSeleccionado, periodo });
+    console.log('Iniciando consolidación...', { clienteSeleccionado, periodo, tipoRubro });
     
     if (!clienteSeleccionado) {
       toast.error('Seleccione o cree un cliente');
@@ -230,11 +322,16 @@ const UploadSection: React.FC = () => {
       return;
     }
 
+    if (!tipoRubro) {
+      toast.error('Seleccione el tipo de rubro');
+      return;
+    }
+
     try {
       // Resetear con datos en blanco
       setDatos([...datosIniciales]); 
       setShowModal(false);
-      toast.success(`Nueva consolidación iniciada para ${clienteSeleccionado.nombre}`);
+      toast.success(`Nueva consolidación iniciada para ${clienteSeleccionado.nombre_empresa} (${tipoRubro})`);
       console.log('Consolidación iniciada exitosamente');
     } catch (error) {
       console.error('Error al iniciar consolidación:', error);
@@ -246,20 +343,23 @@ const UploadSection: React.FC = () => {
   const handleCancelarModal = () => {
     setShowModal(false);
     setClienteSeleccionado(null);
+    setClienteSeleccionadoId('');
     setNuevoCliente({ nombre: '', rtn: '' });
     setPeriodo({ fechaInicio: '', fechaFin: '' });
+    setTipoRubro('');
   };
 
   const isBalanced = Math.abs(totales.debe - totales.haber) < 0.01;
 
-  return (
+  try {
+    return (
     <div className="space-y-6">
       {/* Encabezado - Solo mostrar cuando hay cliente seleccionado */}
       {clienteSeleccionado && (
         <div className="card text-center">
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-gray-900">
-              CLIENTE: {clienteSeleccionado.nombre}
+              CLIENTE: {clienteSeleccionado.nombre_empresa}
             </h2>
             <p className="text-lg font-semibold text-gray-700">
               RTN: {clienteSeleccionado.rtn}
@@ -269,6 +369,16 @@ const UploadSection: React.FC = () => {
                 ? `Del ${periodo.fechaInicio} al ${periodo.fechaFin}` 
                 : 'Sin período definido'}
             </p>
+            {tipoRubro && (
+              <p className="text-md font-semibold text-blue-600">
+                Tipo de Rubro: {tipoRubro}
+                {tipoRubro === 'HOTELES' && (
+                  <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    Incluye I.S.T. 4%
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -292,7 +402,13 @@ const UploadSection: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {datos.map((fila, index) => (
+                {datos.map((fila, index) => {
+                  // Ocultar fila I.S.T. 4% para generales (solo para hoteles)
+                  if (tipoRubro === 'GENERALES' && index === 5) {
+                    return null;
+                  }
+                  
+                  return (
                   <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     <td className="border border-red-500 px-4 py-2 font-medium text-gray-900">
                       {fila.cuenta}
@@ -326,7 +442,8 @@ const UploadSection: React.FC = () => {
                       />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 
                 {/* Fila de totales */}
                 <tr className="bg-gray-200 font-semibold">
@@ -359,7 +476,7 @@ const UploadSection: React.FC = () => {
           <p className={`text-lg font-bold ${
             isBalanced ? 'text-green-600' : 'text-red-600'
           }`}>
-            {isBalanced ? '✓ TOTALES DEBE Y HABER BALANCEADOS' : '⚠ TOTALES DEBE Y HABER NO BALANCEADOS'}
+            {isBalanced ? 'TOTALES DEBE Y HABER BALANCEADOS' : 'TOTALES DEBE Y HABER NO BALANCEADOS'}
           </p>
           {!isBalanced && (
             <p className="text-sm text-gray-600 mt-1">
@@ -373,7 +490,10 @@ const UploadSection: React.FC = () => {
       <div className="card">
         <div className="flex flex-wrap gap-3 justify-center">
           <button
-            onClick={handleNuevaConsolidacion}
+            onClick={() => {
+              console.log('Botón Nueva Consolidación clickeado!');
+              handleNuevaConsolidacion();
+            }}
             className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
@@ -420,7 +540,7 @@ const UploadSection: React.FC = () => {
       {/* Modal para Nueva Consolidación */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Nueva Consolidación Contable</h2>
               <button
@@ -440,20 +560,31 @@ const UploadSection: React.FC = () => {
                 </h3>
                 
                 <div className="space-y-3">
-                  {clientesExistentes.map((cliente) => (
-                    <div
-                      key={cliente.id}
-                      onClick={() => handleSeleccionarCliente(cliente)}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        clienteSeleccionado?.id === cliente.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      <p className="font-medium text-gray-900">{cliente.nombre}</p>
-                      <p className="text-sm text-gray-500">RTN: {cliente.rtn}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cliente Existente
+                  </label>
+                  <select
+                    value={clienteSeleccionadoId}
+                    onChange={(e) => handleSeleccionarCliente(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={loadingClientes}
+                  >
+                    <option value="">
+                      {loadingClientes ? 'Cargando clientes...' : 'Seleccione un cliente'}
+                    </option>
+                    {Array.isArray(clientesExistentes) && clientesExistentes.map((cliente) => (
+                      <option key={cliente.id} value={cliente.id.toString()}>
+                        {cliente.nombre_empresa} - RTN: {cliente.rtn}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {loadingClientes && (
+                    <div className="text-center text-sm text-gray-500">
+                      <RefreshCw className="inline h-4 w-4 animate-spin mr-2" />
+                      Cargando clientes desde la base de datos...
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -494,6 +625,36 @@ const UploadSection: React.FC = () => {
                 </button>
               </div>
 
+              {/* Tipo de Rubro */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Tipo de Rubro <span className="text-red-500">*</span>
+                </h3>
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Seleccione el tipo de negocio
+                  </label>
+                  <select
+                    value={tipoRubro}
+                    onChange={(e) => setTipoRubro(e.target.value as 'GENERALES' | 'HOTELES' | '')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Seleccione el tipo de rubro</option>
+                    <option value="GENERALES">GENERALES</option>
+                    <option value="HOTELES">HOTELES</option>
+                  </select>
+                  
+                  {tipoRubro === 'HOTELES' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm text-blue-800">
+                        <strong>Nota:</strong> Para hoteles se incluirá automáticamente el Impuesto Sobre Turismo (I.S.T.) del 4%
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Período */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Período de Consolidación</h3>
@@ -527,7 +688,7 @@ const UploadSection: React.FC = () => {
               {clienteSeleccionado && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <h4 className="font-medium text-green-900 mb-2">Cliente Seleccionado:</h4>
-                  <p className="text-green-800">{clienteSeleccionado.nombre}</p>
+                  <p className="text-green-800">{clienteSeleccionado.nombre_empresa}</p>
                   <p className="text-sm text-green-600">RTN: {clienteSeleccionado.rtn}</p>
                 </div>
               )}
@@ -547,9 +708,9 @@ const UploadSection: React.FC = () => {
                   console.log('Botón clickeado!');
                   handleIniciarConsolidacion();
                 }}
-                disabled={!clienteSeleccionado || !periodo.fechaInicio || !periodo.fechaFin}
+                disabled={!clienteSeleccionado || !periodo.fechaInicio || !periodo.fechaFin || !tipoRubro}
                 className={`px-6 py-2 rounded-lg transition-colors ${
-                  !clienteSeleccionado || !periodo.fechaInicio || !periodo.fechaFin
+                  !clienteSeleccionado || !periodo.fechaInicio || !periodo.fechaFin || !tipoRubro
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
@@ -562,6 +723,23 @@ const UploadSection: React.FC = () => {
       )}
     </div>
   );
+  } catch (error) {
+    console.error('Error en el renderizado del componente:', error);
+    return (
+      <div className="card bg-red-50 border-red-200 text-center py-12">
+        <div className="text-red-600">
+          <h3 className="text-lg font-medium mb-2">Error en el componente</h3>
+          <p className="text-sm">{error instanceof Error ? error.message : 'Error desconocido'}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Recargar página
+          </button>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default UploadSection;

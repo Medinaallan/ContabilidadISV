@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Building, Calendar, FileText, DollarSign, TrendingUp, Eye } from 'lucide-react';
 import Loading from '@/components/Loading';
-import toast from 'react-hot-toast';
 
 interface Cliente {
   id: number;
