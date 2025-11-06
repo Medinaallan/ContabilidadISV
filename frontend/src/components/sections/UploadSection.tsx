@@ -134,8 +134,8 @@ const UploadSection: React.FC = () => {
           return getNumericValue(datos[1].haber) * 0.15;
         case 4: // I.S.V. 18% Ventas
           return getNumericValue(datos[3].haber) * 0.18;
-        case 5: // I.S.T. 4% Hoteles - Se calcula sobre Ventas Gravadas 15%
-          return getNumericValue(datos[1].haber) * 0.04;
+        case 5: // I.S.T. 4% Hoteles - Solo se calcula si el tipo de rubro es HOTELES
+          return tipoRubro === 'HOTELES' ? getNumericValue(datos[1].haber) * 0.04 : 0;
         default:
           return getNumericValue(fila.haber);
       }
