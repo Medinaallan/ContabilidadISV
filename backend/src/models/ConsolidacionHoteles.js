@@ -1,0 +1,383 @@
+const Database = require('./Database');
+const sql = require('mssql');
+
+class ConsolidacionHoteles {
+    constructor() {
+        this.db = new Database();
+    }
+
+    // Método helper para ejecutar consultas
+    async executeQuery(query, params = {}) {
+        if (!this.db.isConnected) {
+            await this.db.init();
+        }
+
+        const request = this.db.pool.request();
+        
+        // Agregar parámetros
+        for (const [key, value] of Object.entries(params)) {
+            request.input(key, this.getSqlType(key, value), value);
+        }
+
+        const result = await request.query(query);
+        return result.recordset;
+    }
+
+    // Método helper para determinar el tipo SQL
+    getSqlType(key, value) {
+        if (key.includes('id') || key === 'usuario_id' || key === 'cliente_id') {
+            return sql.Int;
+        }
+        if (key.includes('fecha')) {
+            return sql.Date;
+        }
+        if (key.includes('_debe') || key.includes('_haber') || key.includes('total')) {
+            return sql.Decimal(18, 2);
+        }
+        if (typeof value === 'boolean') {
+            return sql.Bit;
+        }
+        return sql.NVarChar;
+    }
+
+    // Crear nueva consolidación de hotel
+    async create(consolidacionData) {
+        try {
+            const {
+                cliente_id,
+                usuario_id,
+                fecha_inicio,
+                fecha_fin,
+                observaciones = null,
+                // Campos DEBE
+                caja_bancos_debe = 0,
+                ventas_gravadas_15_debe = 0,
+                isv_15_ventas_debe = 0,
+                ventas_gravadas_18_debe = 0,
+                isv_18_ventas_debe = 0,
+                ist_4_debe = 0, // Solo hoteles
+                ventas_exentas_debe = 0,
+                compras_gravadas_15_debe = 0,
+                isv_15_compras_debe = 0,
+                compras_gravadas_18_debe = 0,
+                isv_18_compras_debe = 0,
+                compras_exentas_debe = 0,
+                ingresos_honorarios_debe = 0,
+                sueldos_salarios_debe = 0,
+                treceavo_mes_debe = 0,
+                catorceavo_mes_debe = 0,
+                prestaciones_laborales_debe = 0,
+                energia_electrica_debe = 0,
+                suministro_agua_debe = 0,
+                hondutel_debe = 0,
+                servicio_internet_debe = 0,
+                ihss_debe = 0,
+                aportaciones_infop_debe = 0,
+                aportaciones_rap_debe = 0,
+                papeleria_utiles_debe = 0,
+                alquileres_debe = 0,
+                combustibles_lubricantes_debe = 0,
+                seguros_debe = 0,
+                viaticos_gastos_viaje_debe = 0,
+                impuestos_municipales_debe = 0,
+                impuestos_estatales_debe = 0,
+                honorarios_profesionales_debe = 0,
+                mantenimiento_vehiculos_debe = 0,
+                reparacion_mantenimiento_debe = 0,
+                fletes_encomiendas_debe = 0,
+                limpieza_aseo_debe = 0,
+                seguridad_vigilancia_debe = 0,
+                materiales_suministros_debe = 0,
+                publicidad_propaganda_debe = 0,
+                gastos_bancarios_debe = 0,
+                intereses_financieros_debe = 0,
+                tasa_seguridad_poblacional_debe = 0,
+                gastos_varios_debe = 0,
+                // Campos HABER
+                caja_bancos_haber = 0,
+                ventas_gravadas_15_haber = 0,
+                isv_15_ventas_haber = 0,
+                ventas_gravadas_18_haber = 0,
+                isv_18_ventas_haber = 0,
+                ist_4_haber = 0, // Solo hoteles
+                ventas_exentas_haber = 0,
+                compras_gravadas_15_haber = 0,
+                isv_15_compras_haber = 0,
+                compras_gravadas_18_haber = 0,
+                isv_18_compras_haber = 0,
+                compras_exentas_haber = 0,
+                ingresos_honorarios_haber = 0,
+                sueldos_salarios_haber = 0,
+                treceavo_mes_haber = 0,
+                catorceavo_mes_haber = 0,
+                prestaciones_laborales_haber = 0,
+                energia_electrica_haber = 0,
+                suministro_agua_haber = 0,
+                hondutel_haber = 0,
+                servicio_internet_haber = 0,
+                ihss_haber = 0,
+                aportaciones_infop_haber = 0,
+                aportaciones_rap_haber = 0,
+                papeleria_utiles_haber = 0,
+                alquileres_haber = 0,
+                combustibles_lubricantes_haber = 0,
+                seguros_haber = 0,
+                viaticos_gastos_viaje_haber = 0,
+                impuestos_municipales_haber = 0,
+                impuestos_estatales_haber = 0,
+                honorarios_profesionales_haber = 0,
+                mantenimiento_vehiculos_haber = 0,
+                reparacion_mantenimiento_haber = 0,
+                fletes_encomiendas_haber = 0,
+                limpieza_aseo_haber = 0,
+                seguridad_vigilancia_haber = 0,
+                materiales_suministros_haber = 0,
+                publicidad_propaganda_haber = 0,
+                gastos_bancarios_haber = 0,
+                intereses_financieros_haber = 0,
+                tasa_seguridad_poblacional_haber = 0,
+                gastos_varios_haber = 0
+            } = consolidacionData;
+
+            const query = `
+                INSERT INTO consolidaciones_hoteles (
+                    cliente_id, usuario_id, fecha_inicio, fecha_fin, observaciones,
+                    caja_bancos_debe, ventas_gravadas_15_debe, isv_15_ventas_debe, ventas_gravadas_18_debe, isv_18_ventas_debe,
+                    ist_4_debe, ventas_exentas_debe, compras_gravadas_15_debe, isv_15_compras_debe, compras_gravadas_18_debe, 
+                    isv_18_compras_debe, compras_exentas_debe, ingresos_honorarios_debe, sueldos_salarios_debe, treceavo_mes_debe, 
+                    catorceavo_mes_debe, prestaciones_laborales_debe, energia_electrica_debe, suministro_agua_debe, hondutel_debe, 
+                    servicio_internet_debe, ihss_debe, aportaciones_infop_debe, aportaciones_rap_debe, papeleria_utiles_debe, 
+                    alquileres_debe, combustibles_lubricantes_debe, seguros_debe, viaticos_gastos_viaje_debe, impuestos_municipales_debe, 
+                    impuestos_estatales_debe, honorarios_profesionales_debe, mantenimiento_vehiculos_debe, reparacion_mantenimiento_debe, 
+                    fletes_encomiendas_debe, limpieza_aseo_debe, seguridad_vigilancia_debe, materiales_suministros_debe, 
+                    publicidad_propaganda_debe, gastos_bancarios_debe, intereses_financieros_debe, tasa_seguridad_poblacional_debe, 
+                    gastos_varios_debe,
+                    caja_bancos_haber, ventas_gravadas_15_haber, isv_15_ventas_haber, ventas_gravadas_18_haber, isv_18_ventas_haber,
+                    ist_4_haber, ventas_exentas_haber, compras_gravadas_15_haber, isv_15_compras_haber, compras_gravadas_18_haber, 
+                    isv_18_compras_haber, compras_exentas_haber, ingresos_honorarios_haber, sueldos_salarios_haber, treceavo_mes_haber, 
+                    catorceavo_mes_haber, prestaciones_laborales_haber, energia_electrica_haber, suministro_agua_haber, hondutel_haber, 
+                    servicio_internet_haber, ihss_haber, aportaciones_infop_haber, aportaciones_rap_haber, papeleria_utiles_haber, 
+                    alquileres_haber, combustibles_lubricantes_haber, seguros_haber, viaticos_gastos_viaje_haber, impuestos_municipales_haber, 
+                    impuestos_estatales_haber, honorarios_profesionales_haber, mantenimiento_vehiculos_haber, reparacion_mantenimiento_haber, 
+                    fletes_encomiendas_haber, limpieza_aseo_haber, seguridad_vigilancia_haber, materiales_suministros_haber, 
+                    publicidad_propaganda_haber, gastos_bancarios_haber, intereses_financieros_haber, tasa_seguridad_poblacional_haber, 
+                    gastos_varios_haber
+                )
+                OUTPUT INSERTED.id
+                VALUES (
+                    @cliente_id, @usuario_id, @fecha_inicio, @fecha_fin, @observaciones,
+                    @caja_bancos_debe, @ventas_gravadas_15_debe, @isv_15_ventas_debe, @ventas_gravadas_18_debe, @isv_18_ventas_debe,
+                    @ist_4_debe, @ventas_exentas_debe, @compras_gravadas_15_debe, @isv_15_compras_debe, @compras_gravadas_18_debe, 
+                    @isv_18_compras_debe, @compras_exentas_debe, @ingresos_honorarios_debe, @sueldos_salarios_debe, @treceavo_mes_debe, 
+                    @catorceavo_mes_debe, @prestaciones_laborales_debe, @energia_electrica_debe, @suministro_agua_debe, @hondutel_debe, 
+                    @servicio_internet_debe, @ihss_debe, @aportaciones_infop_debe, @aportaciones_rap_debe, @papeleria_utiles_debe, 
+                    @alquileres_debe, @combustibles_lubricantes_debe, @seguros_debe, @viaticos_gastos_viaje_debe, @impuestos_municipales_debe, 
+                    @impuestos_estatales_debe, @honorarios_profesionales_debe, @mantenimiento_vehiculos_debe, @reparacion_mantenimiento_debe, 
+                    @fletes_encomiendas_debe, @limpieza_aseo_debe, @seguridad_vigilancia_debe, @materiales_suministros_debe, 
+                    @publicidad_propaganda_debe, @gastos_bancarios_debe, @intereses_financieros_debe, @tasa_seguridad_poblacional_debe, 
+                    @gastos_varios_debe,
+                    @caja_bancos_haber, @ventas_gravadas_15_haber, @isv_15_ventas_haber, @ventas_gravadas_18_haber, @isv_18_ventas_haber,
+                    @ist_4_haber, @ventas_exentas_haber, @compras_gravadas_15_haber, @isv_15_compras_haber, @compras_gravadas_18_haber, 
+                    @isv_18_compras_haber, @compras_exentas_haber, @ingresos_honorarios_haber, @sueldos_salarios_haber, @treceavo_mes_haber, 
+                    @catorceavo_mes_haber, @prestaciones_laborales_haber, @energia_electrica_haber, @suministro_agua_haber, @hondutel_haber, 
+                    @servicio_internet_haber, @ihss_haber, @aportaciones_infop_haber, @aportaciones_rap_haber, @papeleria_utiles_haber, 
+                    @alquileres_haber, @combustibles_lubricantes_haber, @seguros_haber, @viaticos_gastos_viaje_haber, @impuestos_municipales_haber, 
+                    @impuestos_estatales_haber, @honorarios_profesionales_haber, @mantenimiento_vehiculos_haber, @reparacion_mantenimiento_haber, 
+                    @fletes_encomiendas_haber, @limpieza_aseo_haber, @seguridad_vigilancia_haber, @materiales_suministros_haber, 
+                    @publicidad_propaganda_haber, @gastos_bancarios_haber, @intereses_financieros_haber, @tasa_seguridad_poblacional_haber, 
+                    @gastos_varios_haber
+                )
+            `;
+
+            const params = {
+                cliente_id, usuario_id, fecha_inicio, fecha_fin, observaciones,
+                // DEBE
+                caja_bancos_debe, ventas_gravadas_15_debe, isv_15_ventas_debe, ventas_gravadas_18_debe, isv_18_ventas_debe,
+                ist_4_debe, ventas_exentas_debe, compras_gravadas_15_debe, isv_15_compras_debe, compras_gravadas_18_debe,
+                isv_18_compras_debe, compras_exentas_debe, ingresos_honorarios_debe, sueldos_salarios_debe, treceavo_mes_debe,
+                catorceavo_mes_debe, prestaciones_laborales_debe, energia_electrica_debe, suministro_agua_debe, hondutel_debe,
+                servicio_internet_debe, ihss_debe, aportaciones_infop_debe, aportaciones_rap_debe, papeleria_utiles_debe,
+                alquileres_debe, combustibles_lubricantes_debe, seguros_debe, viaticos_gastos_viaje_debe, impuestos_municipales_debe,
+                impuestos_estatales_debe, honorarios_profesionales_debe, mantenimiento_vehiculos_debe, reparacion_mantenimiento_debe,
+                fletes_encomiendas_debe, limpieza_aseo_debe, seguridad_vigilancia_debe, materiales_suministros_debe,
+                publicidad_propaganda_debe, gastos_bancarios_debe, intereses_financieros_debe, tasa_seguridad_poblacional_debe,
+                gastos_varios_debe,
+                // HABER
+                caja_bancos_haber, ventas_gravadas_15_haber, isv_15_ventas_haber, ventas_gravadas_18_haber, isv_18_ventas_haber,
+                ist_4_haber, ventas_exentas_haber, compras_gravadas_15_haber, isv_15_compras_haber, compras_gravadas_18_haber,
+                isv_18_compras_haber, compras_exentas_haber, ingresos_honorarios_haber, sueldos_salarios_haber, treceavo_mes_haber,
+                catorceavo_mes_haber, prestaciones_laborales_haber, energia_electrica_haber, suministro_agua_haber, hondutel_haber,
+                servicio_internet_haber, ihss_haber, aportaciones_infop_haber, aportaciones_rap_haber, papeleria_utiles_haber,
+                alquileres_haber, combustibles_lubricantes_haber, seguros_haber, viaticos_gastos_viaje_haber, impuestos_municipales_haber,
+                impuestos_estatales_haber, honorarios_profesionales_haber, mantenimiento_vehiculos_haber, reparacion_mantenimiento_haber,
+                fletes_encomiendas_haber, limpieza_aseo_haber, seguridad_vigilancia_haber, materiales_suministros_haber,
+                publicidad_propaganda_haber, gastos_bancarios_haber, intereses_financieros_haber, tasa_seguridad_poblacional_haber,
+                gastos_varios_haber
+            };
+
+            const result = await this.executeQuery(query, params);
+            return { id: result[0].id, ...consolidacionData };
+        } catch (error) {
+            console.error('Error creando consolidación de hotel:', error);
+            throw error;
+        }
+    }
+
+    // Obtener todas las consolidaciones de hoteles
+    async getAll(filters = {}) {
+        try {
+            let query = `
+                SELECT ch.*, c.nombre_empresa as cliente_nombre, u.username as usuario_nombre
+                FROM consolidaciones_hoteles ch
+                LEFT JOIN clientes c ON ch.cliente_id = c.id
+                LEFT JOIN users u ON ch.usuario_id = u.id
+                WHERE ch.activo = 1
+            `;
+            
+            const params = {};
+            
+            if (filters.cliente_id) {
+                query += ' AND ch.cliente_id = @cliente_id';
+                params.cliente_id = filters.cliente_id;
+            }
+            
+            if (filters.fecha_desde) {
+                query += ' AND ch.fecha_inicio >= @fecha_desde';
+                params.fecha_desde = filters.fecha_desde;
+            }
+            
+            if (filters.fecha_hasta) {
+                query += ' AND ch.fecha_fin <= @fecha_hasta';
+                params.fecha_hasta = filters.fecha_hasta;
+            }
+            
+            query += ' ORDER BY ch.fecha_creacion DESC';
+            
+            const results = await this.executeQuery(query, params);
+            return results;
+        } catch (error) {
+            console.error('Error obteniendo consolidaciones de hoteles:', error);
+            throw error;
+        }
+    }
+
+    // Obtener consolidación por ID
+    async getById(id) {
+        try {
+            const query = `
+                SELECT ch.*, c.nombre_empresa as cliente_nombre, u.username as usuario_nombre
+                FROM consolidaciones_hoteles ch
+                LEFT JOIN clientes c ON ch.cliente_id = c.id
+                LEFT JOIN users u ON ch.usuario_id = u.id
+                WHERE ch.id = @id AND ch.activo = 1
+            `;
+            
+            const result = await this.executeQuery(query, { id });
+            return result.length > 0 ? result[0] : null;
+        } catch (error) {
+            console.error('Error obteniendo consolidación de hotel por ID:', error);
+            throw error;
+        }
+    }
+
+    // Actualizar consolidación
+    async update(id, consolidacionData) {
+        try {
+            const fieldsToUpdate = [];
+            const params = { id };
+            
+            // Construir dinámicamente los campos a actualizar
+            Object.keys(consolidacionData).forEach(key => {
+                if (key !== 'id' && consolidacionData[key] !== undefined) {
+                    fieldsToUpdate.push(`${key} = @${key}`);
+                    params[key] = consolidacionData[key];
+                }
+            });
+            
+            if (fieldsToUpdate.length === 0) {
+                throw new Error('No hay campos para actualizar');
+            }
+            
+            const query = `
+                UPDATE consolidaciones_hoteles 
+                SET ${fieldsToUpdate.join(', ')}
+                WHERE id = @id AND activo = 1
+            `;
+            
+            await this.executeQuery(query, params);
+            return await this.getById(id);
+        } catch (error) {
+            console.error('Error actualizando consolidación de hotel:', error);
+            throw error;
+        }
+    }
+
+    // Eliminar consolidación (soft delete)
+    async delete(id) {
+        try {
+            const query = `
+                UPDATE consolidaciones_hoteles 
+                SET activo = 0, fecha_actualizacion = GETDATE()
+                WHERE id = @id
+            `;
+            
+            await this.executeQuery(query, { id });
+            return { message: 'Consolidación eliminada exitosamente' };
+        } catch (error) {
+            console.error('Error eliminando consolidación de hotel:', error);
+            throw error;
+        }
+    }
+
+    // Obtener consolidaciones por cliente
+    async getByCliente(clienteId) {
+        try {
+            return await this.getAll({ cliente_id: clienteId });
+        } catch (error) {
+            console.error('Error obteniendo consolidaciones de hotel por cliente:', error);
+            throw error;
+        }
+    }
+
+    // Método específico para obtener estadísticas de I.S.T.
+    async getISTStatistics(filters = {}) {
+        try {
+            let query = `
+                SELECT 
+                    COUNT(*) as total_consolidaciones,
+                    SUM(ist_4_debe) as total_ist_debe,
+                    SUM(ist_4_haber) as total_ist_haber,
+                    AVG(ist_4_haber) as promedio_ist,
+                    MAX(ist_4_haber) as maximo_ist,
+                    MIN(ist_4_haber) as minimo_ist
+                FROM consolidaciones_hoteles 
+                WHERE activo = 1
+            `;
+            
+            const params = {};
+            
+            if (filters.cliente_id) {
+                query += ' AND cliente_id = @cliente_id';
+                params.cliente_id = filters.cliente_id;
+            }
+            
+            if (filters.fecha_desde) {
+                query += ' AND fecha_inicio >= @fecha_desde';
+                params.fecha_desde = filters.fecha_desde;
+            }
+            
+            if (filters.fecha_hasta) {
+                query += ' AND fecha_fin <= @fecha_hasta';
+                params.fecha_hasta = filters.fecha_hasta;
+            }
+            
+            const result = await this.executeQuery(query, params);
+            return result[0];
+        } catch (error) {
+            console.error('Error obteniendo estadísticas de I.S.T.:', error);
+            throw error;
+        }
+    }
+}
+
+module.exports = ConsolidacionHoteles;

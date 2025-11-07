@@ -15,6 +15,7 @@ const reportsRoutes = require('./src/routes/reports');
 const logsRoutes = require('./src/routes/logs');
 const userRoutes = require('./src/routes/users');
 const clienteRoutes = require('./src/routes/clientes');
+const consolidacionesRoutes = require('./src/routes/consolidaciones');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -80,6 +81,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/clientes', clienteRoutes);
+app.use('/api/consolidaciones', consolidacionesRoutes);
 
 // Ruta de salud del servidor
 app.get('/api/health', (req, res) => {
