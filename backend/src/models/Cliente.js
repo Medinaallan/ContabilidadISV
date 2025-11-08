@@ -59,13 +59,23 @@ class Cliente {
   // Obtener cliente por ID
   async getById(id) {
     try {
+      // Validar que id es un número válido
+      if (!id || isNaN(id) || !Number.isInteger(Number(id))) {
+        throw new Error(`ID inválido: ${id}. Debe ser un número entero válido.`);
+      }
+
+      const numericId = parseInt(id, 10);
+      if (numericId <= 0 || numericId > 2147483647) {
+        throw new Error(`ID fuera de rango: ${numericId}. Debe estar entre 1 y 2147483647.`);
+      }
+
       if (!this.db.isConnected) {
         await this.db.init();
       }
       
       const request = this.db.pool.request();
       
-      request.input('id', sql.Int, id);
+      request.input('id', sql.Int, numericId);
       
       const result = await request.query(`
         SELECT 

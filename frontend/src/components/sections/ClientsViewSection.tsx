@@ -248,7 +248,7 @@ const ClientsViewSection: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         {cliente.logo_url ? (
                           <img 
-                            src={`${process.env.REACT_APP_API_URL || 'http://localhost:3002'}${cliente.logo_url}`}
+                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:3002'}${cliente.logo_url}`}
                             alt={`Logo de ${cliente.nombre_empresa}`}
                             className="h-10 w-10 rounded-lg object-cover"
                           />

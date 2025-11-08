@@ -147,7 +147,7 @@ const clienteController = {
       // Registrar log de cliente creado
       try {
         await systemLog.create({
-          user_id: req.user.userId,
+          user_id: req.user.id,
           action: 'cliente_created',
           description: `Usuario ${req.user.username} creó nuevo cliente: ${clienteData.nombre_empresa} (RTN: ${clienteData.rtn})`,
           ip_address: req.ip || req.connection.remoteAddress,
@@ -168,7 +168,7 @@ const clienteController = {
       // Log del error
       try {
         await systemLog.create({
-          user_id: req.user?.userId || null,
+          user_id: req.user?.id || null,
           action: 'error',
           description: `Error al crear cliente: ${error.message}`,
           ip_address: req.ip || req.connection.remoteAddress,

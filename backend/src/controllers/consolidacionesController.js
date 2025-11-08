@@ -46,7 +46,7 @@ exports.create = async (req, res) => {
         // Registrar log de consolidación creada
         try {
             await systemLog.create({
-                user_id: req.user.userId,
+                user_id: req.user.id,
                 action: 'consolidacion_created',
                 description: `Usuario ${req.user.username} creó nueva consolidación ${result.tipo} para cliente ID: ${consolidacionData.cliente_id}`,
                 ip_address: req.ip || req.connection.remoteAddress,
@@ -67,7 +67,7 @@ exports.create = async (req, res) => {
         // Log del error
         try {
             await systemLog.create({
-                user_id: req.user?.userId || null,
+                user_id: req.user?.id || null,
                 action: 'error',
                 description: `Error al crear consolidación: ${error.message}`,
                 ip_address: req.ip || req.connection.remoteAddress,

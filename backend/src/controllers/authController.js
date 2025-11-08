@@ -213,7 +213,7 @@ const authController = {
     try {
       // Registrar log de cierre de sesión
       await systemLog.create({
-        user_id: req.user.userId,
+        user_id: req.user.id,
         action: 'USER_LOGOUT',
         description: `Usuario ${req.user.username} (${req.user.email}) cerró sesión`,
         ip_address: req.ip || req.connection.remoteAddress,
@@ -230,7 +230,7 @@ const authController = {
       // Log del error
       try {
         await systemLog.create({
-          user_id: req.user.userId || null,
+          user_id: req.user?.id || null,
           action: 'error',
           description: `Error en logout: ${error.message}`,
           ip_address: req.ip || req.connection.remoteAddress,
