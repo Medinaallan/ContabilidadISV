@@ -1,6 +1,6 @@
-const Database = require('../models/Database');
+const SystemLog = require('../models/SystemLog');
 
-const db = new Database();
+const systemLog = new SystemLog();
 
 const logActivity = async (req, res, next) => {
   // Solo loggear rutas importantes, no todas las peticiones
@@ -29,7 +29,7 @@ const logActivity = async (req, res, next) => {
           user_agent: req.get('User-Agent')
         };
 
-        await db.createLog(logData);
+        await systemLog.create(logData);
       } catch (error) {
         console.error('Error registrando log:', error);
       }

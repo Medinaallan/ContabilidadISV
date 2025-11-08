@@ -3,8 +3,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const Cliente = require('../models/Cliente');
+const SystemLog = require('../models/SystemLog');
 
 const cliente = new Cliente();
+const systemLog = new SystemLog();
 
 // Configuración de multer para subir logos
 const storage = multer.diskStorage({
@@ -142,6 +144,19 @@ const clienteController = {
 
       const nuevoCliente = await cliente.create(clienteData);
 
+      // Registrar log de cliente creado
+      try {
+        await systemLog.create({
+          user_id: req.user.userId,
+          action: 'cliente_created',
+          description: `Usuario ${req.user.username} creó nuevo cliente: ${clienteData.nombre_empresa} (RTN: ${clienteData.rtn})`,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get('User-Agent')
+        });
+      } catch (logError) {
+        console.error('Error registrando log de cliente creado:', logError);
+      }
+
       res.status(201).json({
         success: true,
         message: 'Cliente creado exitosamente',
@@ -149,6 +164,19 @@ const clienteController = {
       });
     } catch (error) {
       console.error('Error creando cliente:', error);
+      
+      // Log del error
+      try {
+        await systemLog.create({
+          user_id: req.user?.userId || null,
+          action: 'error',
+          description: `Error al crear cliente: ${error.message}`,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get('User-Agent')
+        });
+      } catch (logError) {
+        console.error('Error logging client create error:', logError);
+      }
       
       // Si hay error y se subió un archivo, eliminarlo
       if (req.file) {

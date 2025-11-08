@@ -1,10 +1,12 @@
 const ConsolidacionGenerales = require('../models/ConsolidacionGenerales');
 const ConsolidacionHoteles = require('../models/ConsolidacionHoteles');
 const Cliente = require('../models/Cliente');
+const SystemLog = require('../models/SystemLog');
 
 const consolidacionGenerales = new ConsolidacionGenerales();
 const consolidacionHoteles = new ConsolidacionHoteles();
 const cliente = new Cliente();
+const systemLog = new SystemLog();
 
 // Crear nueva consolidación
 exports.create = async (req, res) => {
@@ -41,6 +43,19 @@ exports.create = async (req, res) => {
             result.tipo = 'GENERALES';
         }
 
+        // Registrar log de consolidación creada
+        try {
+            await systemLog.create({
+                user_id: req.user.userId,
+                action: 'consolidacion_created',
+                description: `Usuario ${req.user.username} creó nueva consolidación ${result.tipo} para cliente ID: ${consolidacionData.cliente_id}`,
+                ip_address: req.ip || req.connection.remoteAddress,
+                user_agent: req.get('User-Agent')
+            });
+        } catch (logError) {
+            console.error('Error registrando log de consolidación creada:', logError);
+        }
+
         res.status(201).json({
             message: 'Consolidación creada exitosamente',
             data: result
@@ -48,6 +63,20 @@ exports.create = async (req, res) => {
 
     } catch (error) {
         console.error('Error en consolidacionesController.create:', error);
+        
+        // Log del error
+        try {
+            await systemLog.create({
+                user_id: req.user?.userId || null,
+                action: 'error',
+                description: `Error al crear consolidación: ${error.message}`,
+                ip_address: req.ip || req.connection.remoteAddress,
+                user_agent: req.get('User-Agent')
+            });
+        } catch (logError) {
+            console.error('Error logging consolidation create error:', logError);
+        }
+        
         res.status(500).json({
             error: 'Error interno del servidor',
             details: error.message

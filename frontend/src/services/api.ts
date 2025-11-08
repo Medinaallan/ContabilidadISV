@@ -429,7 +429,7 @@ export const clientesApi = {
     const response: AxiosResponse<ClienteStatsResponse> = await api.get('/clientes/stats');
     return response.data;
   }
-};
+}
 
 // Exportar la instancia de axios para uso directo
 export { api };

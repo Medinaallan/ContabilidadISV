@@ -2,8 +2,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const Database = require('../models/Database');
+const SystemLog = require('../models/SystemLog');
 
 const db = new Database();
+const systemLog = new SystemLog();
 
 const authController = {
   // Registro de usuario
@@ -52,12 +54,12 @@ const authController = {
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
-      // Registrar log
-      await db.createLog({
+      // Registrar log de registro exitoso
+      await systemLog.create({
         user_id: user.id,
         action: 'USER_REGISTER',
-        description: `Nuevo usuario registrado: ${username}`,
-        ip_address: req.ip,
+        description: `Nuevo usuario registrado: ${username} (${email})`,
+        ip_address: req.ip || req.connection.remoteAddress,
         user_agent: req.get('User-Agent')
       });
 
@@ -135,12 +137,12 @@ const authController = {
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
-      // Registrar log
-      await db.createLog({
+      // Registrar log de inicio de sesión exitoso
+      await systemLog.create({
         user_id: user.id,
         action: 'USER_LOGIN',
-        description: `Usuario ${user.username} inició sesión`,
-        ip_address: req.ip,
+        description: `Usuario ${user.username} (${user.email}) inició sesión exitosamente`,
+        ip_address: req.ip || req.connection.remoteAddress,
         user_agent: req.get('User-Agent')
       });
 
@@ -157,6 +159,20 @@ const authController = {
 
     } catch (error) {
       console.error('Error en login:', error);
+      
+      // Log del error
+      try {
+        await systemLog.create({
+          user_id: null,
+          action: 'error',
+          description: `Error en intento de login: ${error.message}`,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get('User-Agent')
+        });
+      } catch (logError) {
+        console.error('Error logging login error:', logError);
+      }
+      
       res.status(500).json({
         error: 'Error interno del servidor'
       });
@@ -195,12 +211,12 @@ const authController = {
   // Logout (principalmente para registrar la acción)
   logout: async (req, res) => {
     try {
-      // Registrar log
-      await db.createLog({
-        user_id: req.user.id,
+      // Registrar log de cierre de sesión
+      await systemLog.create({
+        user_id: req.user.userId,
         action: 'USER_LOGOUT',
-        description: `Usuario ${req.user.username} cerró sesión`,
-        ip_address: req.ip,
+        description: `Usuario ${req.user.username} (${req.user.email}) cerró sesión`,
+        ip_address: req.ip || req.connection.remoteAddress,
         user_agent: req.get('User-Agent')
       });
 
@@ -210,6 +226,20 @@ const authController = {
 
     } catch (error) {
       console.error('Error en logout:', error);
+      
+      // Log del error
+      try {
+        await systemLog.create({
+          user_id: req.user.userId || null,
+          action: 'error',
+          description: `Error en logout: ${error.message}`,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get('User-Agent')
+        });
+      } catch (logError) {
+        console.error('Error logging logout error:', logError);
+      }
+      
       res.status(500).json({
         error: 'Error interno del servidor'
       });
