@@ -167,6 +167,11 @@ const DashboardPage: React.FC = () => {
   // Obtener el componente de la sección activa
   const ActiveComponent = allNavItems.find(item => item.key === activeSection)?.component || UploadSection;
 
+  // Función helper para cambiar de sección desde UploadSection
+  const handleSectionChange = (section: 'home' | 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile') => {
+    setActiveSection(section);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -392,6 +397,8 @@ const DashboardPage: React.FC = () => {
         <div className="fade-in">
           {activeSection === 'users' ? (
             <UsersSection userRole={user?.role || 'user'} />
+          ) : activeSection === 'upload' ? (
+            <UploadSection onSectionChange={handleSectionChange} />
           ) : (
             <ActiveComponent />
           )}

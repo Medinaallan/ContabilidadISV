@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Save, Download, RefreshCw, Database, Plus, X, User } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { api } from '../../services/api';
 
 interface CuentaContable {
   cuenta: string;
@@ -25,7 +26,11 @@ interface Cliente {
   fecha_actualizacion?: string;
 }
 
-const UploadSection: React.FC = () => {
+interface UploadSectionProps {
+  onSectionChange?: (section: 'home' | 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile') => void;
+}
+
+const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
   // Datos iniciales de la tabla contable
   const datosIniciales: CuentaContable[] = [
     { cuenta: "Caja y Bancos", debe: "", haber: "", formulaDebe: true, formulaHaber: true }, // DEBE=suma HABER de todas las cuentas, HABER=suma DEBE de todas las cuentas
@@ -235,13 +240,146 @@ const UploadSection: React.FC = () => {
 
   // Guardar cambios
   const handleSave = async () => {
+    // Validaciones antes de guardar
+    if (!clienteSeleccionado) {
+      toast.error('Debe seleccionar un cliente antes de guardar');
+      return;
+    }
+
+    if (!periodo.fechaInicio || !periodo.fechaFin) {
+      toast.error('Debe definir el período (fecha inicio y fin)');
+      return;
+    }
+
+    if (!tipoRubro) {
+      toast.error('Debe seleccionar el tipo de rubro (GENERALES o HOTELES)');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Aquí iría la llamada al backend
-      // await api.post('/api/consolidacion', datos);
-      toast.success('Datos guardados exitosamente');
-    } catch (error) {
-      toast.error('Error al guardar los datos');
+      // Mapear los datos de la tabla a los campos de la base de datos
+      const consolidacionData = {
+        cliente_id: clienteSeleccionado.id,
+        fecha_inicio: periodo.fechaInicio,
+        fecha_fin: periodo.fechaFin,
+        observaciones: `Consolidación ${tipoRubro} - ${periodo.fechaInicio} al ${periodo.fechaFin}`,
+        tipoRubro: tipoRubro,
+        
+        // Mapear cada fila de datos a los campos de la base de datos
+        // DEBE
+        caja_bancos_debe: getValueForDisplay(datos[0], 0, 'debe'),
+        ventas_gravadas_15_debe: getValueForDisplay(datos[1], 1, 'debe'),
+        isv_15_ventas_debe: getValueForDisplay(datos[2], 2, 'debe'),
+        ventas_gravadas_18_debe: getValueForDisplay(datos[3], 3, 'debe'),
+        isv_18_ventas_debe: getValueForDisplay(datos[4], 4, 'debe'),
+        ...(tipoRubro === 'HOTELES' && { ist_4_debe: getValueForDisplay(datos[5], 5, 'debe') }),
+        ventas_exentas_debe: getValueForDisplay(datos[6], 6, 'debe'),
+        compras_gravadas_15_debe: getValueForDisplay(datos[7], 7, 'debe'),
+        isv_15_compras_debe: getValueForDisplay(datos[8], 8, 'debe'),
+        compras_gravadas_18_debe: getValueForDisplay(datos[9], 9, 'debe'),
+        isv_18_compras_debe: getValueForDisplay(datos[10], 10, 'debe'),
+        compras_exentas_debe: getValueForDisplay(datos[11], 11, 'debe'),
+        ingresos_honorarios_debe: getValueForDisplay(datos[12], 12, 'debe'),
+        sueldos_salarios_debe: getValueForDisplay(datos[13], 13, 'debe'),
+        treceavo_mes_debe: getValueForDisplay(datos[14], 14, 'debe'),
+        catorceavo_mes_debe: getValueForDisplay(datos[15], 15, 'debe'),
+        prestaciones_laborales_debe: getValueForDisplay(datos[16], 16, 'debe'),
+        energia_electrica_debe: getValueForDisplay(datos[17], 17, 'debe'),
+        suministro_agua_debe: getValueForDisplay(datos[18], 18, 'debe'),
+        hondutel_debe: getValueForDisplay(datos[19], 19, 'debe'),
+        servicio_internet_debe: getValueForDisplay(datos[20], 20, 'debe'),
+        ihss_debe: getValueForDisplay(datos[21], 21, 'debe'),
+        aportaciones_infop_debe: getValueForDisplay(datos[22], 22, 'debe'),
+        aportaciones_rap_debe: getValueForDisplay(datos[23], 23, 'debe'),
+        papeleria_utiles_debe: getValueForDisplay(datos[24], 24, 'debe'),
+        alquileres_debe: getValueForDisplay(datos[25], 25, 'debe'),
+        combustibles_lubricantes_debe: getValueForDisplay(datos[26], 26, 'debe'),
+        seguros_debe: getValueForDisplay(datos[27], 27, 'debe'),
+        viaticos_gastos_viaje_debe: getValueForDisplay(datos[28], 28, 'debe'),
+        impuestos_municipales_debe: getValueForDisplay(datos[29], 29, 'debe'),
+        impuestos_estatales_debe: getValueForDisplay(datos[30], 30, 'debe'),
+        honorarios_profesionales_debe: getValueForDisplay(datos[31], 31, 'debe'),
+        mantenimiento_vehiculos_debe: getValueForDisplay(datos[32], 32, 'debe'),
+        reparacion_mantenimiento_debe: getValueForDisplay(datos[33], 33, 'debe'),
+        fletes_encomiendas_debe: getValueForDisplay(datos[34], 34, 'debe'),
+        limpieza_aseo_debe: getValueForDisplay(datos[35], 35, 'debe'),
+        seguridad_vigilancia_debe: getValueForDisplay(datos[36], 36, 'debe'),
+        materiales_suministros_debe: getValueForDisplay(datos[37], 37, 'debe'),
+        publicidad_propaganda_debe: getValueForDisplay(datos[38], 38, 'debe'),
+        gastos_bancarios_debe: getValueForDisplay(datos[39], 39, 'debe'),
+        intereses_financieros_debe: getValueForDisplay(datos[40], 40, 'debe'),
+        tasa_seguridad_poblacional_debe: getValueForDisplay(datos[41], 41, 'debe'),
+        gastos_varios_debe: getValueForDisplay(datos[42], 42, 'debe'),
+
+        // HABER
+        caja_bancos_haber: getValueForDisplay(datos[0], 0, 'haber'),
+        ventas_gravadas_15_haber: getValueForDisplay(datos[1], 1, 'haber'),
+        isv_15_ventas_haber: getValueForDisplay(datos[2], 2, 'haber'),
+        ventas_gravadas_18_haber: getValueForDisplay(datos[3], 3, 'haber'),
+        isv_18_ventas_haber: getValueForDisplay(datos[4], 4, 'haber'),
+        ...(tipoRubro === 'HOTELES' && { ist_4_haber: getValueForDisplay(datos[5], 5, 'haber') }),
+        ventas_exentas_haber: getValueForDisplay(datos[6], 6, 'haber'),
+        compras_gravadas_15_haber: getValueForDisplay(datos[7], 7, 'haber'),
+        isv_15_compras_haber: getValueForDisplay(datos[8], 8, 'haber'),
+        compras_gravadas_18_haber: getValueForDisplay(datos[9], 9, 'haber'),
+        isv_18_compras_haber: getValueForDisplay(datos[10], 10, 'haber'),
+        compras_exentas_haber: getValueForDisplay(datos[11], 11, 'haber'),
+        ingresos_honorarios_haber: getValueForDisplay(datos[12], 12, 'haber'),
+        sueldos_salarios_haber: getValueForDisplay(datos[13], 13, 'haber'),
+        treceavo_mes_haber: getValueForDisplay(datos[14], 14, 'haber'),
+        catorceavo_mes_haber: getValueForDisplay(datos[15], 15, 'haber'),
+        prestaciones_laborales_haber: getValueForDisplay(datos[16], 16, 'haber'),
+        energia_electrica_haber: getValueForDisplay(datos[17], 17, 'haber'),
+        suministro_agua_haber: getValueForDisplay(datos[18], 18, 'haber'),
+        hondutel_haber: getValueForDisplay(datos[19], 19, 'haber'),
+        servicio_internet_haber: getValueForDisplay(datos[20], 20, 'haber'),
+        ihss_haber: getValueForDisplay(datos[21], 21, 'haber'),
+        aportaciones_infop_haber: getValueForDisplay(datos[22], 22, 'haber'),
+        aportaciones_rap_haber: getValueForDisplay(datos[23], 23, 'haber'),
+        papeleria_utiles_haber: getValueForDisplay(datos[24], 24, 'haber'),
+        alquileres_haber: getValueForDisplay(datos[25], 25, 'haber'),
+        combustibles_lubricantes_haber: getValueForDisplay(datos[26], 26, 'haber'),
+        seguros_haber: getValueForDisplay(datos[27], 27, 'haber'),
+        viaticos_gastos_viaje_haber: getValueForDisplay(datos[28], 28, 'haber'),
+        impuestos_municipales_haber: getValueForDisplay(datos[29], 29, 'haber'),
+        impuestos_estatales_haber: getValueForDisplay(datos[30], 30, 'haber'),
+        honorarios_profesionales_haber: getValueForDisplay(datos[31], 31, 'haber'),
+        mantenimiento_vehiculos_haber: getValueForDisplay(datos[32], 32, 'haber'),
+        reparacion_mantenimiento_haber: getValueForDisplay(datos[33], 33, 'haber'),
+        fletes_encomiendas_haber: getValueForDisplay(datos[34], 34, 'haber'),
+        limpieza_aseo_haber: getValueForDisplay(datos[35], 35, 'haber'),
+        seguridad_vigilancia_haber: getValueForDisplay(datos[36], 36, 'haber'),
+        materiales_suministros_haber: getValueForDisplay(datos[37], 37, 'haber'),
+        publicidad_propaganda_haber: getValueForDisplay(datos[38], 38, 'haber'),
+        gastos_bancarios_haber: getValueForDisplay(datos[39], 39, 'haber'),
+        intereses_financieros_haber: getValueForDisplay(datos[40], 40, 'haber'),
+        tasa_seguridad_poblacional_haber: getValueForDisplay(datos[41], 41, 'haber'),
+        gastos_varios_haber: getValueForDisplay(datos[42], 42, 'haber')
+      };
+
+      console.log('Enviando consolidación:', consolidacionData);
+      
+      const response = await api.post('/consolidaciones', consolidacionData);
+      
+      toast.success(`Consolidación ${tipoRubro} guardada exitosamente!`);
+      console.log('Consolidación guardada:', response.data);
+      
+      // Limpiar y cerrar la hoja de consolidación después de guardar exitosamente
+      setDatos(datosIniciales);
+      setClienteSeleccionado(null);
+      setPeriodo({ fechaInicio: '', fechaFin: '' });
+      setTipoRubro('');
+      
+      // Opcionalmente cambiar a la sección de inicio o historial
+      if (onSectionChange) {
+        onSectionChange('home'); // Cambiar a la sección de inicio
+      }
+      
+    } catch (error: any) {
+      console.error('Error guardando consolidación:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Error al guardar la consolidación';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
