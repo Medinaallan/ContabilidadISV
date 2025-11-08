@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Clock, Calendar } from 'lucide-react';
+import { Clock, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -35,14 +35,13 @@ const HomeSection: React.FC = () => {
 
       {/* Contenido principal */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-200px)] p-8">
-        {/* Logo/Título principal */}
+        {/* Logo principal */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-24 h-24 mb-6 bg-primary-600 rounded-full shadow-lg">
-            <Building2 className="w-12 h-12 text-white" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Servicios Contables de Occidente
-          </h1>
+          <img 
+            src="/src/logo-home.png" 
+            alt="Servicios Contables de Occidente" 
+            className="mx-auto max-w-2xl w-full h-auto"
+          />
         </div>
 
         {/* Información de fecha y hora */}
