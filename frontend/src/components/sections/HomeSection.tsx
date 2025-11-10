@@ -38,7 +38,7 @@ const HomeSection: React.FC = () => {
         {/* Logo principal */}
         <div className="text-center mb-8">
           <img 
-            src="/src/logo-home.png" 
+            src="/logo-home.png" 
             alt="Servicios Contables de Occidente" 
             className="mx-auto max-w-2xl w-full h-auto"
           />

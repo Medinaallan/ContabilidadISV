@@ -188,7 +188,10 @@ const ReportsSection: React.FC = () => {
                     <div className="text-center">
                       <button
                         onClick={() => {
-                          toast.info('Vista detallada próximamente disponible');
+                          toast('Vista detallada próximamente disponible', {
+                            icon: 'ℹ️',
+                            duration: 3000,
+                          });
                         }}
                         className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                       >

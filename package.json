@@ -12,7 +12,11 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "setup": "npm run install-all && npm run init-db",
-    "windows": "./iniciar-aplicacion.bat"
+    "windows": "./iniciar-aplicacion.bat",
+    "build": "npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview",
+    "start:prod": "npm run build && npm run preview"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

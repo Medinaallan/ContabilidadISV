@@ -290,7 +290,7 @@ const HistorySection: React.FC = () => {
     }).join('');
 
     // Obtener URLs de las imágenes
-    const serviciosContablesLogo = '/src/logo-home.png'; // Logo de Servicios Contables
+    const serviciosContablesLogo = '/logo-home.png'; // Logo de Servicios Contables
     let clienteLogo = '';
     
     // Construir URL del logo del cliente si existe
