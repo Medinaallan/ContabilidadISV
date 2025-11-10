@@ -227,7 +227,39 @@ class ConsolidacionHoteles {
     async getAll(filters = {}) {
         try {
             let query = `
-                SELECT ch.*, c.nombre_empresa as cliente_nombre, u.username as usuario_nombre
+                SELECT ch.*, 
+                       c.nombre_empresa as cliente_nombre, 
+                       u.username as usuario_nombre,
+                       -- Calcular total DEBE (incluye IST para hoteles)
+                       (ch.caja_bancos_debe + ch.ventas_gravadas_15_debe + ch.isv_15_ventas_debe + 
+                        ch.ventas_gravadas_18_debe + ch.isv_18_ventas_debe + ch.ist_4_debe + 
+                        ch.ventas_exentas_debe + ch.compras_gravadas_15_debe + ch.isv_15_compras_debe + 
+                        ch.compras_gravadas_18_debe + ch.isv_18_compras_debe + ch.compras_exentas_debe + 
+                        ch.ingresos_honorarios_debe + ch.sueldos_salarios_debe + ch.treceavo_mes_debe + 
+                        ch.catorceavo_mes_debe + ch.prestaciones_laborales_debe + ch.energia_electrica_debe + 
+                        ch.suministro_agua_debe + ch.hondutel_debe + ch.servicio_internet_debe + ch.ihss_debe + 
+                        ch.aportaciones_infop_debe + ch.aportaciones_rap_debe + ch.papeleria_utiles_debe + 
+                        ch.alquileres_debe + ch.combustibles_lubricantes_debe + ch.seguros_debe + 
+                        ch.viaticos_gastos_viaje_debe + ch.impuestos_municipales_debe + ch.impuestos_estatales_debe + 
+                        ch.honorarios_profesionales_debe + ch.mantenimiento_vehiculos_debe + ch.reparacion_mantenimiento_debe + 
+                        ch.fletes_encomiendas_debe + ch.limpieza_aseo_debe + ch.seguridad_vigilancia_debe + 
+                        ch.materiales_suministros_debe + ch.publicidad_propaganda_debe + ch.gastos_bancarios_debe + 
+                        ch.intereses_financieros_debe + ch.tasa_seguridad_poblacional_debe + ch.gastos_varios_debe) as total_debe,
+                       -- Calcular total HABER (incluye IST para hoteles)
+                       (ch.caja_bancos_haber + ch.ventas_gravadas_15_haber + ch.isv_15_ventas_haber + 
+                        ch.ventas_gravadas_18_haber + ch.isv_18_ventas_haber + ch.ist_4_haber + 
+                        ch.ventas_exentas_haber + ch.compras_gravadas_15_haber + ch.isv_15_compras_haber + 
+                        ch.compras_gravadas_18_haber + ch.isv_18_compras_haber + ch.compras_exentas_haber + 
+                        ch.ingresos_honorarios_haber + ch.sueldos_salarios_haber + ch.treceavo_mes_haber + 
+                        ch.catorceavo_mes_haber + ch.prestaciones_laborales_haber + ch.energia_electrica_haber + 
+                        ch.suministro_agua_haber + ch.hondutel_haber + ch.servicio_internet_haber + ch.ihss_haber + 
+                        ch.aportaciones_infop_haber + ch.aportaciones_rap_haber + ch.papeleria_utiles_haber + 
+                        ch.alquileres_haber + ch.combustibles_lubricantes_haber + ch.seguros_haber + 
+                        ch.viaticos_gastos_viaje_haber + ch.impuestos_municipales_haber + ch.impuestos_estatales_haber + 
+                        ch.honorarios_profesionales_haber + ch.mantenimiento_vehiculos_haber + ch.reparacion_mantenimiento_haber + 
+                        ch.fletes_encomiendas_haber + ch.limpieza_aseo_haber + ch.seguridad_vigilancia_haber + 
+                        ch.materiales_suministros_haber + ch.publicidad_propaganda_haber + ch.gastos_bancarios_haber + 
+                        ch.intereses_financieros_haber + ch.tasa_seguridad_poblacional_haber + ch.gastos_varios_haber) as total_haber
                 FROM consolidaciones_hoteles ch
                 LEFT JOIN clientes c ON ch.cliente_id = c.id
                 LEFT JOIN users u ON ch.usuario_id = u.id
@@ -251,6 +283,11 @@ class ConsolidacionHoteles {
                 params.fecha_hasta = filters.fecha_hasta;
             }
             
+            if (filters.usuario_id) {
+                query += ' AND ch.usuario_id = @usuario_id';
+                params.usuario_id = filters.usuario_id;
+            }
+            
             query += ' ORDER BY ch.fecha_creacion DESC';
             
             const results = await this.executeQuery(query, params);
@@ -265,7 +302,39 @@ class ConsolidacionHoteles {
     async getById(id) {
         try {
             const query = `
-                SELECT ch.*, c.nombre_empresa as cliente_nombre, u.username as usuario_nombre
+                SELECT ch.*, 
+                       c.nombre_empresa as cliente_nombre, 
+                       u.username as usuario_nombre,
+                       -- Calcular total DEBE (incluye IST para hoteles)
+                       (ch.caja_bancos_debe + ch.ventas_gravadas_15_debe + ch.isv_15_ventas_debe + 
+                        ch.ventas_gravadas_18_debe + ch.isv_18_ventas_debe + ch.ist_4_debe + 
+                        ch.ventas_exentas_debe + ch.compras_gravadas_15_debe + ch.isv_15_compras_debe + 
+                        ch.compras_gravadas_18_debe + ch.isv_18_compras_debe + ch.compras_exentas_debe + 
+                        ch.ingresos_honorarios_debe + ch.sueldos_salarios_debe + ch.treceavo_mes_debe + 
+                        ch.catorceavo_mes_debe + ch.prestaciones_laborales_debe + ch.energia_electrica_debe + 
+                        ch.suministro_agua_debe + ch.hondutel_debe + ch.servicio_internet_debe + ch.ihss_debe + 
+                        ch.aportaciones_infop_debe + ch.aportaciones_rap_debe + ch.papeleria_utiles_debe + 
+                        ch.alquileres_debe + ch.combustibles_lubricantes_debe + ch.seguros_debe + 
+                        ch.viaticos_gastos_viaje_debe + ch.impuestos_municipales_debe + ch.impuestos_estatales_debe + 
+                        ch.honorarios_profesionales_debe + ch.mantenimiento_vehiculos_debe + ch.reparacion_mantenimiento_debe + 
+                        ch.fletes_encomiendas_debe + ch.limpieza_aseo_debe + ch.seguridad_vigilancia_debe + 
+                        ch.materiales_suministros_debe + ch.publicidad_propaganda_debe + ch.gastos_bancarios_debe + 
+                        ch.intereses_financieros_debe + ch.tasa_seguridad_poblacional_debe + ch.gastos_varios_debe) as total_debe,
+                       -- Calcular total HABER (incluye IST para hoteles)
+                       (ch.caja_bancos_haber + ch.ventas_gravadas_15_haber + ch.isv_15_ventas_haber + 
+                        ch.ventas_gravadas_18_haber + ch.isv_18_ventas_haber + ch.ist_4_haber + 
+                        ch.ventas_exentas_haber + ch.compras_gravadas_15_haber + ch.isv_15_compras_haber + 
+                        ch.compras_gravadas_18_haber + ch.isv_18_compras_haber + ch.compras_exentas_haber + 
+                        ch.ingresos_honorarios_haber + ch.sueldos_salarios_haber + ch.treceavo_mes_haber + 
+                        ch.catorceavo_mes_haber + ch.prestaciones_laborales_haber + ch.energia_electrica_haber + 
+                        ch.suministro_agua_haber + ch.hondutel_haber + ch.servicio_internet_haber + ch.ihss_haber + 
+                        ch.aportaciones_infop_haber + ch.aportaciones_rap_haber + ch.papeleria_utiles_haber + 
+                        ch.alquileres_haber + ch.combustibles_lubricantes_haber + ch.seguros_haber + 
+                        ch.viaticos_gastos_viaje_haber + ch.impuestos_municipales_haber + ch.impuestos_estatales_haber + 
+                        ch.honorarios_profesionales_haber + ch.mantenimiento_vehiculos_haber + ch.reparacion_mantenimiento_haber + 
+                        ch.fletes_encomiendas_haber + ch.limpieza_aseo_haber + ch.seguridad_vigilancia_haber + 
+                        ch.materiales_suministros_haber + ch.publicidad_propaganda_haber + ch.gastos_bancarios_haber + 
+                        ch.intereses_financieros_haber + ch.tasa_seguridad_poblacional_haber + ch.gastos_varios_haber) as total_haber
                 FROM consolidaciones_hoteles ch
                 LEFT JOIN clientes c ON ch.cliente_id = c.id
                 LEFT JOIN users u ON ch.usuario_id = u.id

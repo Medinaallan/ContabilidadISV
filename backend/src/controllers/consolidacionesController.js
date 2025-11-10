@@ -94,6 +94,11 @@ exports.getAll = async (req, res) => {
         if (fecha_desde) filters.fecha_desde = fecha_desde;
         if (fecha_hasta) filters.fecha_hasta = fecha_hasta;
 
+        // Filtrar por usuario, excepto si es admin
+        if (req.user.role !== 'admin') {
+            filters.usuario_id = req.user.id;
+        }
+
         let consolidaciones = [];
 
         // Obtener de ambas tablas o solo una según filtro

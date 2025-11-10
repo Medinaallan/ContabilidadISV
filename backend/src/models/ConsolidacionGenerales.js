@@ -219,7 +219,39 @@ class ConsolidacionGenerales {
     async getAll(filters = {}) {
         try {
             let query = `
-                SELECT cg.*, c.nombre_empresa as cliente_nombre, u.username as usuario_nombre
+                SELECT cg.*, 
+                       c.nombre_empresa as cliente_nombre, 
+                       u.username as usuario_nombre,
+                       -- Calcular total DEBE
+                       (cg.caja_bancos_debe + cg.ventas_gravadas_15_debe + cg.isv_15_ventas_debe + 
+                        cg.ventas_gravadas_18_debe + cg.isv_18_ventas_debe + cg.ventas_exentas_debe + 
+                        cg.compras_gravadas_15_debe + cg.isv_15_compras_debe + cg.compras_gravadas_18_debe + 
+                        cg.isv_18_compras_debe + cg.compras_exentas_debe + cg.ingresos_honorarios_debe + 
+                        cg.sueldos_salarios_debe + cg.treceavo_mes_debe + cg.catorceavo_mes_debe + 
+                        cg.prestaciones_laborales_debe + cg.energia_electrica_debe + cg.suministro_agua_debe + 
+                        cg.hondutel_debe + cg.servicio_internet_debe + cg.ihss_debe + 
+                        cg.aportaciones_infop_debe + cg.aportaciones_rap_debe + cg.papeleria_utiles_debe + 
+                        cg.alquileres_debe + cg.combustibles_lubricantes_debe + cg.seguros_debe + 
+                        cg.viaticos_gastos_viaje_debe + cg.impuestos_municipales_debe + cg.impuestos_estatales_debe + 
+                        cg.honorarios_profesionales_debe + cg.mantenimiento_vehiculos_debe + cg.reparacion_mantenimiento_debe + 
+                        cg.fletes_encomiendas_debe + cg.limpieza_aseo_debe + cg.seguridad_vigilancia_debe + 
+                        cg.materiales_suministros_debe + cg.publicidad_propaganda_debe + cg.gastos_bancarios_debe + 
+                        cg.intereses_financieros_debe + cg.tasa_seguridad_poblacional_debe + cg.gastos_varios_debe) as total_debe,
+                       -- Calcular total HABER
+                       (cg.caja_bancos_haber + cg.ventas_gravadas_15_haber + cg.isv_15_ventas_haber + 
+                        cg.ventas_gravadas_18_haber + cg.isv_18_ventas_haber + cg.ventas_exentas_haber + 
+                        cg.compras_gravadas_15_haber + cg.isv_15_compras_haber + cg.compras_gravadas_18_haber + 
+                        cg.isv_18_compras_haber + cg.compras_exentas_haber + cg.ingresos_honorarios_haber + 
+                        cg.sueldos_salarios_haber + cg.treceavo_mes_haber + cg.catorceavo_mes_haber + 
+                        cg.prestaciones_laborales_haber + cg.energia_electrica_haber + cg.suministro_agua_haber + 
+                        cg.hondutel_haber + cg.servicio_internet_haber + cg.ihss_haber + 
+                        cg.aportaciones_infop_haber + cg.aportaciones_rap_haber + cg.papeleria_utiles_haber + 
+                        cg.alquileres_haber + cg.combustibles_lubricantes_haber + cg.seguros_haber + 
+                        cg.viaticos_gastos_viaje_haber + cg.impuestos_municipales_haber + cg.impuestos_estatales_haber + 
+                        cg.honorarios_profesionales_haber + cg.mantenimiento_vehiculos_haber + cg.reparacion_mantenimiento_haber + 
+                        cg.fletes_encomiendas_haber + cg.limpieza_aseo_haber + cg.seguridad_vigilancia_haber + 
+                        cg.materiales_suministros_haber + cg.publicidad_propaganda_haber + cg.gastos_bancarios_haber + 
+                        cg.intereses_financieros_haber + cg.tasa_seguridad_poblacional_haber + cg.gastos_varios_haber) as total_haber
                 FROM consolidaciones_generales cg
                 LEFT JOIN clientes c ON cg.cliente_id = c.id
                 LEFT JOIN users u ON cg.usuario_id = u.id
@@ -243,6 +275,11 @@ class ConsolidacionGenerales {
                 params.fecha_hasta = filters.fecha_hasta;
             }
             
+            if (filters.usuario_id) {
+                query += ' AND cg.usuario_id = @usuario_id';
+                params.usuario_id = filters.usuario_id;
+            }
+            
             query += ' ORDER BY cg.fecha_creacion DESC';
             
             const results = await this.executeQuery(query, params);
@@ -257,7 +294,39 @@ class ConsolidacionGenerales {
     async getById(id) {
         try {
             const query = `
-                SELECT cg.*, c.nombre_empresa as cliente_nombre, u.username as usuario_nombre
+                SELECT cg.*, 
+                       c.nombre_empresa as cliente_nombre, 
+                       u.username as usuario_nombre,
+                       -- Calcular total DEBE
+                       (cg.caja_bancos_debe + cg.ventas_gravadas_15_debe + cg.isv_15_ventas_debe + 
+                        cg.ventas_gravadas_18_debe + cg.isv_18_ventas_debe + cg.ventas_exentas_debe + 
+                        cg.compras_gravadas_15_debe + cg.isv_15_compras_debe + cg.compras_gravadas_18_debe + 
+                        cg.isv_18_compras_debe + cg.compras_exentas_debe + cg.ingresos_honorarios_debe + 
+                        cg.sueldos_salarios_debe + cg.treceavo_mes_debe + cg.catorceavo_mes_debe + 
+                        cg.prestaciones_laborales_debe + cg.energia_electrica_debe + cg.suministro_agua_debe + 
+                        cg.hondutel_debe + cg.servicio_internet_debe + cg.ihss_debe + 
+                        cg.aportaciones_infop_debe + cg.aportaciones_rap_debe + cg.papeleria_utiles_debe + 
+                        cg.alquileres_debe + cg.combustibles_lubricantes_debe + cg.seguros_debe + 
+                        cg.viaticos_gastos_viaje_debe + cg.impuestos_municipales_debe + cg.impuestos_estatales_debe + 
+                        cg.honorarios_profesionales_debe + cg.mantenimiento_vehiculos_debe + cg.reparacion_mantenimiento_debe + 
+                        cg.fletes_encomiendas_debe + cg.limpieza_aseo_debe + cg.seguridad_vigilancia_debe + 
+                        cg.materiales_suministros_debe + cg.publicidad_propaganda_debe + cg.gastos_bancarios_debe + 
+                        cg.intereses_financieros_debe + cg.tasa_seguridad_poblacional_debe + cg.gastos_varios_debe) as total_debe,
+                       -- Calcular total HABER
+                       (cg.caja_bancos_haber + cg.ventas_gravadas_15_haber + cg.isv_15_ventas_haber + 
+                        cg.ventas_gravadas_18_haber + cg.isv_18_ventas_haber + cg.ventas_exentas_haber + 
+                        cg.compras_gravadas_15_haber + cg.isv_15_compras_haber + cg.compras_gravadas_18_haber + 
+                        cg.isv_18_compras_haber + cg.compras_exentas_haber + cg.ingresos_honorarios_haber + 
+                        cg.sueldos_salarios_haber + cg.treceavo_mes_haber + cg.catorceavo_mes_haber + 
+                        cg.prestaciones_laborales_haber + cg.energia_electrica_haber + cg.suministro_agua_haber + 
+                        cg.hondutel_haber + cg.servicio_internet_haber + cg.ihss_haber + 
+                        cg.aportaciones_infop_haber + cg.aportaciones_rap_haber + cg.papeleria_utiles_haber + 
+                        cg.alquileres_haber + cg.combustibles_lubricantes_haber + cg.seguros_haber + 
+                        cg.viaticos_gastos_viaje_haber + cg.impuestos_municipales_haber + cg.impuestos_estatales_haber + 
+                        cg.honorarios_profesionales_haber + cg.mantenimiento_vehiculos_haber + cg.reparacion_mantenimiento_haber + 
+                        cg.fletes_encomiendas_haber + cg.limpieza_aseo_haber + cg.seguridad_vigilancia_haber + 
+                        cg.materiales_suministros_haber + cg.publicidad_propaganda_haber + cg.gastos_bancarios_haber + 
+                        cg.intereses_financieros_haber + cg.tasa_seguridad_poblacional_haber + cg.gastos_varios_haber) as total_haber
                 FROM consolidaciones_generales cg
                 LEFT JOIN clientes c ON cg.cliente_id = c.id
                 LEFT JOIN users u ON cg.usuario_id = u.id

@@ -124,6 +124,14 @@ const formatLogForAdmin = (log) => {
 // Obtener logs del sistema
 router.get('/', async (req, res) => {
   try {
+    // Solo admin puede acceder a los logs
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        error: 'Acceso denegado',
+        message: 'Solo los administradores pueden acceder a los logs del sistema'
+      });
+    }
+
     const { limit = 100, userId, action } = req.query;
     
     const filters = {};

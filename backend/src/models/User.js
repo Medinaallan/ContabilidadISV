@@ -47,19 +47,27 @@ class User {
                 role = 'user'
             } = userData;
 
-            const query = `
+            // Primero insertar sin OUTPUT
+            const insertQuery = `
                 INSERT INTO users (username, email, password, role)
-                OUTPUT INSERTED.id, INSERTED.username, INSERTED.email, INSERTED.role, INSERTED.created_at, INSERTED.updated_at
                 VALUES (@username, @email, @password, @role)
             `;
 
-            const result = await this.executeQuery(query, {
+            await this.executeQuery(insertQuery, {
                 username,
                 email,
                 password,
                 role
             });
 
+            // Luego obtener el usuario creado por email (único)
+            const selectQuery = `
+                SELECT id, username, email, role, created_at, updated_at
+                FROM users
+                WHERE email = @email
+            `;
+
+            const result = await this.executeQuery(selectQuery, { email });
             return result[0];
 
         } catch (error) {
@@ -161,14 +169,23 @@ class User {
             // Agregar updated_at
             updateFields.push('updated_at = GETDATE()');
 
-            const query = `
+            // Primero actualizar sin OUTPUT
+            const updateQuery = `
                 UPDATE users
                 SET ${updateFields.join(', ')}
-                OUTPUT INSERTED.id, INSERTED.username, INSERTED.email, INSERTED.role, INSERTED.created_at, INSERTED.updated_at
                 WHERE id = @id
             `;
 
-            const result = await this.executeQuery(query, params);
+            await this.executeQuery(updateQuery, params);
+
+            // Luego obtener el usuario actualizado
+            const selectQuery = `
+                SELECT id, username, email, role, created_at, updated_at
+                FROM users
+                WHERE id = @id
+            `;
+
+            const result = await this.executeQuery(selectQuery, { id });
             return result[0] || null;
 
         } catch (error) {
