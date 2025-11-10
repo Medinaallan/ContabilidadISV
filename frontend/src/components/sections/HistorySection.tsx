@@ -7,6 +7,8 @@ import ConsolidacionModal from '@/components/ConsolidacionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const HistorySection: React.FC = () => {
   const { user } = useAuth();
@@ -196,12 +198,53 @@ const HistorySection: React.FC = () => {
         iframeDoc.write(printContent);
         iframeDoc.close();
         
+        // Cambiar el título para evitar que aparezca en el header
+        iframeDoc.title = '';
+        
         // Esperar a que se cargue el contenido y luego imprimir
         iframe.onload = () => {
           setTimeout(() => {
             try {
-              iframe.contentWindow?.focus();
-              iframe.contentWindow?.print();
+              const iframeWindow = iframe.contentWindow;
+              if (iframeWindow) {
+                iframeWindow.focus();
+                
+                // Intentar configurar opciones de impresión para ocultar headers/footers
+                const printOptions = {
+                  silent: false,
+                  printBackground: true,
+                  color: false,
+                  margin: {
+                    marginType: 'custom',
+                    top: 0.5,
+                    bottom: 0.5,
+                    left: 0.5,
+                    right: 0.5
+                  },
+                  landscape: false,
+                  pagesPerSheet: 1,
+                  collate: true,
+                  copies: 1,
+                  header: '',
+                  footer: ''
+                };
+                
+                // Si el navegador soporta opciones avanzadas de impresión
+                if ('print' in iframeWindow && typeof iframeWindow.print === 'function') {
+                  try {
+                    // Intentar usar la API moderna de impresión si está disponible
+                    if ('showPrintDialog' in iframeWindow) {
+                      (iframeWindow as any).showPrintDialog(printOptions);
+                    } else {
+                      iframeWindow.print();
+                    }
+                  } catch (e) {
+                    iframeWindow.print();
+                  }
+                } else {
+                  iframeWindow.print();
+                }
+              }
               
               // Limpiar el iframe después de un momento
               setTimeout(() => {
@@ -304,8 +347,11 @@ const HistorySection: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Servicios Contables de Occidente - Consolidación Contable</title>
+        <title></title>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="print-header" content="">
+        <meta name="print-footer" content="">
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
           .header-logos { 
@@ -362,6 +408,15 @@ const HistorySection: React.FC = () => {
             .footer { 
               position: fixed; 
               bottom: 0; 
+            }
+            /* Ocultar headers y footers del navegador */
+            @page {
+              margin: 0.5in;
+              size: A4;
+            }
+            body {
+              margin: 0;
+              padding: 20px;
             }
           }
         </style>
@@ -431,12 +486,181 @@ const HistorySection: React.FC = () => {
         ` : ''}
 
         <div class="footer">
-          Servicios Contables de Occidente - Área de Desarrollo Tecnológico<br>
-          Sus datos son completamente confidenciales
+          Servicios Contables de Occidente &mdash; Departamento de Desarrollo Tecnológico<br>
+          Toda la información suministrada será manejada bajo los más altos estándares de confidencialidad.
         </div>
       </body>
       </html>
     `;
+  };
+
+  // Generar PDF directo con jsPDF
+  const handleGenerateDirectPDF = async (consolidacion: Consolidacion) => {
+    try {
+      const detalles = await consolidacionService.getById(consolidacion.id, consolidacion.tipo);
+      
+      // Debug: verificar que el RTN está llegando
+      console.log('Detalles de la consolidación:', detalles);
+      console.log('Cliente RTN:', detalles.cliente_rtn);
+      
+      const pdf = new jsPDF('portrait', 'mm', 'letter');
+      
+      // Cargar logo
+      const logoUrl = '/logo-home.png';
+      let logoDataUrl = '';
+      
+      try {
+        // Convertir logo a base64
+        const response = await fetch(logoUrl);
+        const blob = await response.blob();
+        logoDataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.warn('No se pudo cargar el logo:', error);
+      }
+      
+      // Header con logo centrado
+      if (logoDataUrl) {
+        // Logo con relación de aspecto 2.79:1 (superpanorámica)
+        const logoHeight = 15; // mm
+        const logoWidth = logoHeight * 2.79; // 41.85 mm
+        const pageWidth = 215.9; // Ancho de página carta en mm
+        const logoX = (pageWidth - logoWidth) / 2; // Centrado horizontalmente
+        pdf.addImage(logoDataUrl, 'PNG', logoX, 10, logoWidth, logoHeight);
+      }
+      
+      // Título centrado debajo del logo
+      pdf.setFontSize(12);
+      const centerX = 215.9 / 2; // Centro de página carta
+      pdf.text('CONSOLIDACIÓN CONTABLE', centerX, 35, { align: 'center' });
+      pdf.text('_____________________________________________________________________________', centerX, 38, { align: 'center' });
+      
+      // Período centrado debajo del título
+      pdf.setFontSize(10);
+      pdf.text(`PERIODO DEL: ${formatDate(detalles.fecha_inicio)} AL: ${formatDate(detalles.fecha_fin)}`, centerX, 45, { align: 'center' });
+      
+      // Información en dos columnas
+      let yPos = 55;
+      
+      // Línea 1: Cliente (izquierda) - Usuario (derecha)
+      pdf.text(`CLIENTE: ${detalles.cliente_nombre || 'No especificado'}`, 20, yPos);
+      pdf.text(`GENERADO POR: ${detalles.usuario_nombre || 'No especificado'}`, 130, yPos);
+      yPos += 7;
+      
+      // Línea 2: RTN (izquierda) - Fecha de generación (derecha)
+      const fechaActual = new Date().toLocaleDateString('es-HN', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric'
+      });
+      pdf.text(`RTN: ${detalles.cliente_rtn || 'No especificado'}`, 20, yPos);
+      pdf.text(`FECHA DE CREACION: ${fechaActual}`, 130, yPos);
+      yPos += 15;
+      
+      // Mapeo completo de cuentas
+      const cuentasMap = [
+        { key: 'caja_bancos', nombre: 'Caja y Bancos' },
+        { key: 'ventas_gravadas_15', nombre: 'Ventas Gravadas 15%' },
+        { key: 'isv_15_ventas', nombre: 'I.S.V. 15%' },
+        { key: 'ventas_gravadas_18', nombre: 'Ventas Gravadas 18%' },
+        { key: 'isv_18_ventas', nombre: 'I.S.V. 18%' },
+        ...(detalles.tipo === 'HOTELES' ? [{ key: 'ist_4', nombre: 'I.S.T. 4%' }] : []),
+        { key: 'ventas_exentas', nombre: 'Ventas Exentas' },
+        { key: 'compras_gravadas_15', nombre: 'Compras Gravadas 15%' },
+        { key: 'isv_15_compras', nombre: 'I.S.V. 15%' },
+        { key: 'compras_gravadas_18', nombre: 'Compras Gravadas 18%' },
+        { key: 'isv_18_compras', nombre: 'I.S.V. 18%' },
+        { key: 'compras_exentas', nombre: 'Compras Exentas' },
+        { key: 'ingresos_honorarios', nombre: 'Ingresos por Honorarios' },
+        { key: 'sueldos_salarios', nombre: 'Sueldos y Salarios' },
+        { key: 'treceavo_mes', nombre: '13 Avo mes' },
+        { key: 'catorceavo_mes', nombre: '14 Avo mes' },
+        { key: 'prestaciones_laborales', nombre: 'Prestaciones laborales' },
+        { key: 'energia_electrica', nombre: 'Energía Eléctrica' },
+        { key: 'suministro_agua', nombre: 'Suministro de Agua' },
+        { key: 'hondutel', nombre: 'Hondutel' },
+        { key: 'servicio_internet', nombre: 'Servicio de Internet' },
+        { key: 'ihss', nombre: 'IHSS Instituto Hondureño de Seguridad Social' },
+        { key: 'aportaciones_infop', nombre: 'Aportaciones INFOP' },
+        { key: 'aportaciones_rap', nombre: 'Aportaciones RAP' },
+        { key: 'papeleria_utiles', nombre: 'Papelería y Útiles' },
+        { key: 'alquileres', nombre: 'Alquileres' },
+        { key: 'combustibles_lubricantes', nombre: 'Combustibles y Lubricantes' },
+        { key: 'seguros', nombre: 'Seguros' },
+        { key: 'viaticos_gastos_viaje', nombre: 'Viáticos / Gastos de viaje' },
+        { key: 'impuestos_municipales', nombre: 'Impuestos Municipales' },
+        { key: 'impuestos_estatales', nombre: 'Impuestos Estatales' },
+        { key: 'honorarios_profesionales', nombre: 'Honorarios Profesionales' },
+        { key: 'mantenimiento_vehiculos', nombre: 'Mantenimiento de Vehículos' },
+        { key: 'reparacion_mantenimiento', nombre: 'Reparación y Mantenimiento varios' },
+        { key: 'fletes_encomiendas', nombre: 'Fletes y encomiendas' },
+        { key: 'limpieza_aseo', nombre: 'Limpieza y Aseo' },
+        { key: 'seguridad_vigilancia', nombre: 'Seguridad y Vigilancia' },
+        { key: 'materiales_suministros', nombre: 'Materiales, Suministros y Accesorios' },
+        { key: 'publicidad_propaganda', nombre: 'Publicidad y Propaganda' },
+        { key: 'gastos_bancarios', nombre: 'Gastos Bancarios' },
+        { key: 'intereses_financieros', nombre: 'Intereses Financieros' },
+        { key: 'tasa_seguridad_poblacional', nombre: 'Tasa de Seguridad Poblacional' },
+        { key: 'gastos_varios', nombre: 'Gastos Varios' }
+      ];
+      
+      // Preparar datos de la tabla
+      const tableData = cuentasMap.map(cuenta => {
+        const debeKey = `${cuenta.key}_debe` as keyof ConsolidacionDetalle;
+        const haberKey = `${cuenta.key}_haber` as keyof ConsolidacionDetalle;
+        const debe = Number(detalles[debeKey]) || 0;
+        const haber = Number(detalles[haberKey]) || 0;
+        return [cuenta.nombre, formatCurrency(debe), formatCurrency(haber)];
+      });
+      
+      // Agregar fila de totales
+      tableData.push(['TOTALES', formatCurrency(detalles.total_debe || 0), formatCurrency(detalles.total_haber || 0)]);
+      
+      // Crear tabla
+      autoTable(pdf, {
+        startY: yPos = 70,
+        head: [['CUENTA', 'DEBE', 'HABER']],
+        body: tableData,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { 
+          fillColor: [100, 100, 100], 
+          textColor: 255,
+          halign: 'center' // Centrar por defecto
+        },
+        columnStyles: {
+          0: { cellWidth: 80 },
+          1: { cellWidth: 50, halign: 'right' },
+          2: { cellWidth: 50, halign: 'right' }
+        },
+        didParseCell: function(data) {
+          // Alinear encabezados DEBE y HABER a la derecha
+          if (data.section === 'head' && (data.column.index === 1 || data.column.index === 2)) {
+            data.cell.styles.halign = 'right';
+          }
+        }
+      });
+      
+      // Footer
+      const pageHeight = pdf.internal.pageSize.height;
+      pdf.setFontSize(8);
+      pdf.text('Servicios Contables de Occidente - Departamento de Desarrollo Tecnológico', centerX, pageHeight - 25, { align: 'center' });
+      pdf.text('Comprometidos con la confidencialidad y la integridad, aseguramos que toda la', centerX, pageHeight - 17, { align: 'center' });
+      pdf.text('información suministrada sea veraz, confidencial y tratada con absoluta responsabilidad.', centerX, pageHeight - 13, { align: 'center' });
+      
+      // Abrir PDF en nueva pestaña en lugar de descargar
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+      
+      toast.success('PDF generado exitosamente');
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error generando PDF';
+      toast.error(errorMessage);
+    }
   };
 
   // Formatear fecha
@@ -444,10 +668,8 @@ const HistorySection: React.FC = () => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
-      month: 'short',
+      month: 'long',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
     });
   };
 
@@ -648,6 +870,15 @@ const HistorySection: React.FC = () => {
                         >
                           <Printer className="h-4 w-4" />
                           <span>Imprimir</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleGenerateDirectPDF(consolidacion)}
+                          className="inline-flex items-center space-x-1 px-3 py-1 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors"
+                          title="Generar PDF directo"
+                        >
+                          <Download className="h-4 w-4" />
+                          <span>PDF</span>
                         </button>
                       </div>
                     </td>
