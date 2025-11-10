@@ -229,6 +229,7 @@ class ConsolidacionHoteles {
             let query = `
                 SELECT ch.*, 
                        c.nombre_empresa as cliente_nombre, 
+                       c.rtn as cliente_rtn,
                        u.username as usuario_nombre,
                        -- Calcular total DEBE (incluye IST para hoteles)
                        (ch.caja_bancos_debe + ch.ventas_gravadas_15_debe + ch.isv_15_ventas_debe + 
@@ -304,6 +305,7 @@ class ConsolidacionHoteles {
             const query = `
                 SELECT ch.*, 
                        c.nombre_empresa as cliente_nombre, 
+                       c.rtn as cliente_rtn,
                        u.username as usuario_nombre,
                        -- Calcular total DEBE (incluye IST para hoteles)
                        (ch.caja_bancos_debe + ch.ventas_gravadas_15_debe + ch.isv_15_ventas_debe + 

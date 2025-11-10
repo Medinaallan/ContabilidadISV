@@ -221,6 +221,7 @@ class ConsolidacionGenerales {
             let query = `
                 SELECT cg.*, 
                        c.nombre_empresa as cliente_nombre, 
+                       c.rtn as cliente_rtn,
                        u.username as usuario_nombre,
                        -- Calcular total DEBE
                        (cg.caja_bancos_debe + cg.ventas_gravadas_15_debe + cg.isv_15_ventas_debe + 
@@ -296,6 +297,7 @@ class ConsolidacionGenerales {
             const query = `
                 SELECT cg.*, 
                        c.nombre_empresa as cliente_nombre, 
+                       c.rtn as cliente_rtn,
                        u.username as usuario_nombre,
                        -- Calcular total DEBE
                        (cg.caja_bancos_debe + cg.ventas_gravadas_15_debe + cg.isv_15_ventas_debe + 
