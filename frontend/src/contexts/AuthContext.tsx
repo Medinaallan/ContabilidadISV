@@ -61,7 +61,7 @@ const authReducer = (state: AppState, action: AuthAction): AppState => {
 
 // Interfaz del contexto
 interface AuthContextType extends AppState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -111,12 +111,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Función de login
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (username: string, password: string): Promise<void> => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
 
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ username, password });
       
       // Guardar token y datos del usuario
       tokenUtils.setToken(response.token);

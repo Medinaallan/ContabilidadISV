@@ -142,6 +142,23 @@ class Database {
     }
   }
 
+  async findUserByUsername(username) {
+    try {
+      if (!this.pool || !this.isConnected) {
+        await this.init();
+      }
+      
+      const result = await this.pool.request()
+        .input('username', sql.NVarChar(255), username)
+        .query('SELECT * FROM users WHERE username = @username');
+      
+      return result.recordset[0] || null;
+    } catch (error) {
+      console.error('❌ Error en findUserByUsername:', error.message);
+      throw this.handleSqlError(error);
+    }
+  }
+
   async findUserById(id) {
     try {
       if (!this.pool || !this.isConnected) {

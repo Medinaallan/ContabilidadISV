@@ -61,12 +61,6 @@ const DashboardPage: React.FC = () => {
       icon: History,
       component: HistorySection,
     },
-    {
-      key: 'reports',
-      label: 'Reportes',
-      icon: BarChart3,
-      component: ReportsSection,
-    },
   ];
 
   // Items de navegación para clientes
@@ -76,12 +70,6 @@ const DashboardPage: React.FC = () => {
       label: 'Ver y Añadir',
       icon: UserPlus,
       component: ClientsViewSection,
-    },
-    {
-      key: 'clients-profile',
-      label: 'Perfil de Cliente',
-      icon: UserCheck,
-      component: ClientsProfileSection,
     },
   ];
 

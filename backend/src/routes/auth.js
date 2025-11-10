@@ -26,10 +26,11 @@ const registerValidation = [
 
 // Validaciones para login
 const loginValidation = [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Email inválido'),
+  body('username')
+    .notEmpty()
+    .withMessage('El nombre de usuario es requerido')
+    .isLength({ min: 3 })
+    .withMessage('El nombre de usuario debe tener al menos 3 caracteres'),
   body('password')
     .notEmpty()
     .withMessage('La contraseña es requerida')

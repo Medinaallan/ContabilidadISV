@@ -94,36 +94,25 @@ const authController = {
         });
       }
 
-      const { email, password } = req.body;
+      const { username, password } = req.body;
 
-      console.log('🔐 Login attempt for email:', email);
-      console.log('🔐 Password length:', password ? password.length : 'undefined');
-
-      // Buscar usuario
-      const user = await db.findUserByEmail(email);
-      console.log('👤 User found:', user ? `ID: ${user.id}, Email: ${user.email}` : 'null');
+      // Buscar usuario por nombre de usuario
+      const user = await db.findUserByUsername(username);
       
       if (!user) {
-        console.log('❌ User not found for email:', email);
         return res.status(401).json({
           error: 'Credenciales inválidas'
         });
       }
-
-      console.log('🔍 Stored password hash:', user.password.substring(0, 20) + '...');
       
       // Verificar contraseña
       const isValidPassword = await bcrypt.compare(password, user.password);
-      console.log('🔑 Password validation result:', isValidPassword);
       
       if (!isValidPassword) {
-        console.log('❌ Invalid password for user:', email);
         return res.status(401).json({
           error: 'Credenciales inválidas'
         });
       }
-
-      console.log('✅ Login successful for user:', email);
 
       // Generar token
       const token = jwt.sign(

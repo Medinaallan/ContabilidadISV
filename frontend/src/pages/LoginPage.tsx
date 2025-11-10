@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, User, LogIn } from 'lucide-react';
+import { Lock, User, LogIn } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Loading from '@/components/Loading';
 
 interface LoginFormData {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -29,7 +29,7 @@ const LoginPage: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(data.email, data.password);
+      await login(data.username, data.password);
     } catch (error) {
       // Los errores se manejan en el contexto
     }
@@ -57,32 +57,32 @@ const LoginPage: React.FC = () => {
         {/* Formulario */}
         <div className="card">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            {/* Email */}
+            {/* Username */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre de Usuario
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  {...register('email', {
-                    required: 'El email es requerido',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Email inválido'
+                  {...register('username', {
+                    required: 'El nombre de usuario es requerido',
+                    minLength: {
+                      value: 3,
+                      message: 'El nombre de usuario debe tener al menos 3 caracteres'
                     }
                   })}
-                  type="email"
-                  id="email"
+                  type="text"
+                  id="username"
                   className="input-field pl-10"
-                  placeholder="tu@email.com"
+                  placeholder="tu_usuario"
                   disabled={isSubmitting || isLoading}
                 />
               </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
               )}
             </div>
 
