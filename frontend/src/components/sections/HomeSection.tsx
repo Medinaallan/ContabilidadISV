@@ -16,7 +16,7 @@ const HomeSection: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-[calc(100vh-200px)] relative overflow-hidden">
+    <div className="min-h-[60vh] relative overflow-hidden">
       {/* Fondo con gradiente elegante */}
       <div 
         className="absolute inset-0"
@@ -34,9 +34,9 @@ const HomeSection: React.FC = () => {
       <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px]" />
 
       {/* Contenido principal */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-200px)] p-8">
+      <div className="relative z-10 flex flex-col items-center justify-start pt-12 p-8">
         {/* Logo principal */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <img 
             src="/src/logo-home.png" 
             alt="Servicios Contables de Occidente" 
@@ -45,7 +45,7 @@ const HomeSection: React.FC = () => {
         </div>
 
         {/* Información de fecha y hora */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border border-gray-200/50">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-200/50">
           <div className="flex items-center justify-center space-x-6 text-gray-700">
             <div className="flex items-center space-x-2">
               <Calendar className="w-5 h-5" />

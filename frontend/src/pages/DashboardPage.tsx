@@ -85,15 +85,15 @@ const DashboardPage: React.FC = () => {
     },
   ];
 
-  // Items de navegación independientes
-  const independentNavItems: NavItem[] = [
+  // Items de navegación independientes (solo para admin)
+  const independentNavItems: NavItem[] = user?.role === 'admin' ? [
     {
       key: 'logs',
       label: 'Logs del Sistema',
       icon: ScrollText,
       component: LogsSection,
     },
-  ];
+  ] : [];
 
   // Agregar sección de usuarios solo para administradores
   const adminItems: NavItem[] = user?.role === 'admin' ? [{

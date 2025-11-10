@@ -74,6 +74,36 @@ export interface ConsolidationTotals {
   };
 }
 
+// Tipos para consolidaciones contables
+export interface Consolidacion {
+  id: number;
+  cliente_id: number;
+  usuario_id: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+  fecha_creacion: string;
+  observaciones?: string;
+  tipo: 'GENERALES' | 'HOTELES';
+  total_debe: number;
+  total_haber: number;
+  // Información adicional del cliente y usuario
+  cliente_nombre?: string;
+  usuario_nombre?: string;
+  // Todos los campos específicos de cada cuenta contable
+  [key: string]: any;
+}
+
+export interface ConsolidacionDetalle extends Consolidacion {
+  // Detalles completos de la consolidación para vista
+  detalles?: {
+    cuentas: Array<{
+      cuenta: string;
+      debe: number;
+      haber: number;
+    }>;
+  };
+}
+
 // Tipos para reportes
 export interface ReportData {
   id: number;

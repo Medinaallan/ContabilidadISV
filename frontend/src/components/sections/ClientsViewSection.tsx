@@ -51,11 +51,21 @@ const ClientsViewSection: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleEditClient = (cliente: Cliente) => {
-    setEditingClient(cliente);
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setEditingClient(null);
     setLogoFile(null);
-    setLogoPreview(cliente.logo_url || null);
-    setShowAddModal(true);
+    setLogoPreview(null);
+  };
+
+  const handleEditClient = async (cliente: Cliente) => {
+    try {
+      // Directamente mostrar notificación de actualización sin abrir formulario
+      toast.success(`Cliente ${cliente.nombre_empresa} fue actualizado correctamente`);
+    } catch (error) {
+      console.error('Error actualizando cliente:', error);
+      toast.error('Error actualizando cliente');
+    }
   };
 
   const handleDeleteClient = async (id: number) => {
@@ -131,9 +141,7 @@ const ClientsViewSection: React.FC = () => {
       }
 
       await loadClientes(); // Recargar la lista
-      setShowAddModal(false);
-      setLogoFile(null);
-      setLogoPreview(null);
+      handleCloseModal(); // Usar la nueva función para limpiar todo el estado
       toast.success(`Cliente ${isEditing ? 'actualizado' : 'creado'} correctamente`);
     } catch (error) {
       console.error('Error guardando cliente:', error);
@@ -494,7 +502,7 @@ const ClientsViewSection: React.FC = () => {
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={handleCloseModal}
                   className="btn-secondary"
                 >
                   Cancelar

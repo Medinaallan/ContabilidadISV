@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollText, User, Clock, Activity, Filter, AlertTriangle, Info, CheckCircle, XCircle, Archive, RefreshCw } from 'lucide-react';
+import { ScrollText, User, Clock, Activity, Filter, AlertTriangle, Info, CheckCircle, XCircle, Archive, RefreshCw, Shield } from 'lucide-react';
 import { logsService } from '@/services/api';
 import { SystemLog } from '@/types';
 import Loading from '@/components/Loading';
+import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 interface LogStatistics {
@@ -20,12 +21,28 @@ interface LogsResponse {
 }
 
 const LogsSection: React.FC = () => {
+  const { user } = useAuth();
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [filteredLogs, setFilteredLogs] = useState<SystemLog[]>([]);
   const [statistics, setStatistics] = useState<LogStatistics | null>(null);
+
+  // Verificar permisos de admin
+  if (user?.role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md text-center">
+          <Shield className="h-12 w-12 text-red-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-red-900 mb-2">Acceso Denegado</h3>
+          <p className="text-red-700">
+            Solo los administradores pueden acceder a los logs del sistema.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Cargar logs
   useEffect(() => {

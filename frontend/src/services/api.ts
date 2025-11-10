@@ -10,7 +10,9 @@ import {
   DashboardSummary,
   SystemLog,
   ConsolidatedData,
-  ApiError
+  ApiError,
+  Consolidacion,
+  ConsolidacionDetalle
 } from '@/types';
 
 // Configuración base de axios
@@ -428,6 +430,75 @@ export const clientesApi = {
   getStats: async (): Promise<ClienteStatsResponse> => {
     const response: AxiosResponse<ClienteStatsResponse> = await api.get('/clientes/stats');
     return response.data;
+  }
+}
+
+// Servicios de consolidaciones
+export const consolidacionService = {
+  // Obtener historial de consolidaciones
+  getHistory: async (filters?: {
+    cliente_id?: number;
+    fecha_desde?: string;
+    fecha_hasta?: string;
+    tipo?: 'GENERALES' | 'HOTELES';
+  }): Promise<{ data: Consolidacion[]; total: number; message: string }> => {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.cliente_id) params.append('cliente_id', filters.cliente_id.toString());
+      if (filters?.fecha_desde) params.append('fecha_desde', filters.fecha_desde);
+      if (filters?.fecha_hasta) params.append('fecha_hasta', filters.fecha_hasta);
+      if (filters?.tipo) params.append('tipo', filters.tipo);
+
+      const response: AxiosResponse<{ message: string; data: Consolidacion[]; total: number }> = 
+        await api.get(`/consolidaciones?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
+
+  // Obtener detalles de una consolidación específica
+  getById: async (id: number, tipo: 'GENERALES' | 'HOTELES'): Promise<ConsolidacionDetalle> => {
+    try {
+      const response: AxiosResponse<{ message: string; data: ConsolidacionDetalle }> = 
+        await api.get(`/consolidaciones/${id}?tipo=${tipo}`);
+      return response.data.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
+
+  // Crear nueva consolidación
+  create: async (consolidacionData: Partial<Consolidacion>): Promise<Consolidacion> => {
+    try {
+      const response: AxiosResponse<{ message: string; data: Consolidacion }> = 
+        await api.post('/consolidaciones', consolidacionData);
+      return response.data.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
+
+  // Actualizar consolidación
+  update: async (id: number, consolidacionData: Partial<Consolidacion>, tipo: 'GENERALES' | 'HOTELES'): Promise<Consolidacion> => {
+    try {
+      const response: AxiosResponse<{ message: string; data: Consolidacion }> = 
+        await api.put(`/consolidaciones/${id}?tipo=${tipo}`, consolidacionData);
+      return response.data.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
+
+  // Eliminar consolidación
+  delete: async (id: number, tipo: 'GENERALES' | 'HOTELES'): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response: AxiosResponse<{ success: boolean; message: string }> = 
+        await api.delete(`/consolidaciones/${id}?tipo=${tipo}`);
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
   }
 }
 
