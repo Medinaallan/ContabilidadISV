@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Search, Plus, Edit, Eye, Trash2, Phone, Mail, MapPin, Upload } from 'lucide-react';
+import { User, Search, Plus, Edit, Eye, Trash2, Phone, Mail, MapPin } from 'lucide-react';
 import Loading from '@/components/Loading';
 import toast from 'react-hot-toast';
 import { clientesApi, Cliente, ClienteCreateData, ClienteUpdateData } from '@/services/api';
@@ -12,7 +12,7 @@ const ClientsViewSection: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Cliente | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  // const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   // Cargar clientes desde la API
   const loadClientes = async () => {
@@ -47,7 +47,7 @@ const ClientsViewSection: React.FC = () => {
   const handleAddClient = () => {
     setEditingClient(null);
     setLogoFile(null);
-    setLogoPreview(null);
+    // setLogoPreview(null);
     setShowAddModal(true);
   };
 
@@ -55,7 +55,7 @@ const ClientsViewSection: React.FC = () => {
     setShowAddModal(false);
     setEditingClient(null);
     setLogoFile(null);
-    setLogoPreview(null);
+    // setLogoPreview(null);
   };
 
   const handleEditClient = async (cliente: Cliente) => {
@@ -92,29 +92,29 @@ const ClientsViewSection: React.FC = () => {
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB
-        toast.error('El archivo no debe superar 5MB');
-        return;
-      }
+  // const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file) {
+  //     if (file.size > 5 * 1024 * 1024) { // 5MB
+  //       toast.error('El archivo no debe superar 5MB');
+  //       return;
+  //     }
 
-      if (!file.type.startsWith('image/')) {
-        toast.error('Solo se permiten archivos de imagen');
-        return;
-      }
+  //     if (!file.type.startsWith('image/')) {
+  //       toast.error('Solo se permiten archivos de imagen');
+  //       return;
+  //     }
 
-      setLogoFile(file);
+  //     setLogoFile(file);
       
-      // Crear preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setLogoPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  //     // Crear preview
+  //     const reader = new FileReader();
+  //     reader.onload = (e) => {
+  //       setLogoPreview(e.target?.result as string);
+  //     };
+  //     reader.readAsDataURL(file);
+  //   }
+  // };
 
   const handleSubmitClient = async (formData: FormData) => {
     try {
@@ -366,7 +366,7 @@ const ClientsViewSection: React.FC = () => {
               }}
               className="space-y-4"
             >
-              {/* Logo del negocio */}
+              {/* Logo del negocio
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Logo del Negocio
@@ -399,7 +399,7 @@ const ClientsViewSection: React.FC = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
