@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Save, Download, RefreshCw, Database, Plus, X, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../../services/api';
+import { formatDateForAPI } from '../../utils/dateUtils';
 
 interface CuentaContable {
   cuenta: string;
@@ -238,6 +239,9 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
     setDatos(newDatos);
   };
 
+  // Función para formatear fechas sin zona horaria (importada desde utils)
+  // const formatearFecha = formatDateForAPI;
+
   // Guardar cambios
   const handleSave = async () => {
     // Validaciones antes de guardar
@@ -261,9 +265,9 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
       // Mapear los datos de la tabla a los campos de la base de datos
       const consolidacionData = {
         cliente_id: clienteSeleccionado.id,
-        fecha_inicio: periodo.fechaInicio,
-        fecha_fin: periodo.fechaFin,
-        observaciones: `Consolidación ${tipoRubro} - ${periodo.fechaInicio} al ${periodo.fechaFin}`,
+        fecha_inicio: formatDateForAPI(periodo.fechaInicio),
+        fecha_fin: formatDateForAPI(periodo.fechaFin),
+        observaciones: `Consolidación ${tipoRubro} - ${formatDateForAPI(periodo.fechaInicio)} al ${formatDateForAPI(periodo.fechaFin)}`,
         tipoRubro: tipoRubro,
         
         // Mapear cada fila de datos a los campos de la base de datos
@@ -521,6 +525,57 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
         </div>
       )}
 
+      {/* Botones de acción */}
+      <div className="card">
+        <div className="flex flex-wrap gap-3 justify-center">
+          <button
+            onClick={() => {
+              handleNuevaConsolidacion();
+            }}
+            className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Nueva Consolidación</span>
+          </button>
+
+          <button
+            onClick={handleSave}
+            disabled={isLoading || !clienteSeleccionado}
+            className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            <span>Guardar cambios</span>
+          </button>
+
+          <button
+            onClick={handleLoad}
+            disabled={isLoading}
+            className="flex items-center space-x-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+          >
+            <Database className="h-4 w-4" />
+            <span>Cargar datos</span>
+          </button>
+
+          <button
+            onClick={handleExport}
+            disabled={!clienteSeleccionado}
+            className="flex items-center space-x-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            <span>Exportar a Excel</span>
+          </button>
+
+          <button
+            onClick={handleReset}
+            className="flex items-center space-x-2 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Restablecer valores</span>
+          </button>
+        </div>
+      </div>
+
+
       {/* Tabla de consolidación */}
       {clienteSeleccionado ? (
         <div className="card overflow-hidden">
@@ -624,56 +679,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
         </div>
       )}
 
-      {/* Botones de acción */}
-      <div className="card">
-        <div className="flex flex-wrap gap-3 justify-center">
-          <button
-            onClick={() => {
-              console.log('Botón Nueva Consolidación clickeado!');
-              handleNuevaConsolidacion();
-            }}
-            className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nueva Consolidación</span>
-          </button>
-
-          <button
-            onClick={handleSave}
-            disabled={isLoading || !clienteSeleccionado}
-            className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-          >
-            <Save className="h-4 w-4" />
-            <span>Guardar cambios</span>
-          </button>
-
-          <button
-            onClick={handleLoad}
-            disabled={isLoading}
-            className="flex items-center space-x-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
-          >
-            <Database className="h-4 w-4" />
-            <span>Cargar datos</span>
-          </button>
-
-          <button
-            onClick={handleExport}
-            disabled={!clienteSeleccionado}
-            className="flex items-center space-x-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            <span>Exportar a Excel</span>
-          </button>
-
-          <button
-            onClick={handleReset}
-            className="flex items-center space-x-2 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Restablecer valores</span>
-          </button>
-        </div>
-      </div>
+      
 
       {/* Modal para Nueva Consolidación */}
       {showModal && (
@@ -726,42 +732,6 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
                 </div>
               </div>
 
-              {/* Crear Nuevo Cliente */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">O Crear Nuevo Cliente</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre de la Empresa
-                    </label>
-                    <input
-                      type="text"
-                      value={nuevoCliente.nombre}
-                      onChange={(e) => setNuevoCliente(prev => ({ ...prev, nombre: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ej: INVERSIONES DIVERSAS"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      RTN
-                    </label>
-                    <input
-                      type="text"
-                      value={nuevoCliente.rtn}
-                      onChange={(e) => setNuevoCliente(prev => ({ ...prev, rtn: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ej: 10061984254183"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={handleCrearCliente}
-                  className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Crear Cliente
-                </button>
-              </div>
 
               {/* Tipo de Rubro */}
               <div>

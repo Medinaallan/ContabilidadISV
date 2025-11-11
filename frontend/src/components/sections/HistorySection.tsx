@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
+import { formatDate, formatCurrency, formatCreationDate } from '../../utils/dateUtils';
 import autoTable from 'jspdf-autotable';
 
 const HistorySection: React.FC = () => {
@@ -75,7 +76,7 @@ const HistorySection: React.FC = () => {
         ['Usuario:', detalles.usuario_nombre || 'No especificado'],
         ['Tipo:', detalles.tipo],
         ['Período:', `${formatDate(detalles.fecha_inicio)} - ${formatDate(detalles.fecha_fin)}`],
-        ['Fecha de Creación:', formatDate(detalles.fecha_creacion)],
+        ['Fecha de Creación:', formatCreationDate(detalles.fecha_creacion)],
         [''],
         // Encabezados de la tabla
         ['CUENTA', 'DEBE', 'HABER'],
@@ -453,7 +454,7 @@ const HistorySection: React.FC = () => {
           <div class="info-row"><strong>Usuario:</strong> ${detalles.usuario_nombre || 'No especificado'}</div>
           <div class="info-row"><strong>Tipo de Rubro:</strong> ${detalles.tipo}</div>
           <div class="info-row"><strong>Período:</strong> ${formatDate(detalles.fecha_inicio)} - ${formatDate(detalles.fecha_fin)}</div>
-          <div class="info-row"><strong>Fecha de Creación:</strong> ${formatDate(detalles.fecha_creacion)}</div>
+          <div class="info-row"><strong>Fecha de Creación:</strong> ${formatCreationDate(detalles.fecha_creacion)}</div>
         </div>
 
         <table>
@@ -663,24 +664,7 @@ const HistorySection: React.FC = () => {
     }
   };
 
-  // Formatear fecha
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  // Formatear moneda
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-HN', {
-      style: 'currency',
-      currency: 'HNL',
-      minimumFractionDigits: 2
-    }).format(amount || 0);
-  };
+  // Las funciones formatDate y formatCurrency se importan desde utils/dateUtils
 
   if (isLoading) {
     return (
@@ -839,7 +823,7 @@ const HistorySection: React.FC = () => {
                     
                     <td className="table-cell">
                       <div className="text-sm text-gray-900">
-                        {formatDate(consolidacion.fecha_creacion)}
+                        {formatCreationDate(consolidacion.fecha_creacion)}
                       </div>
                     </td>
                     

@@ -5,6 +5,7 @@ import { SystemLog } from '@/types';
 import Loading from '@/components/Loading';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { formatDateTimeForLogs } from '../../utils/dateUtils';
 
 interface LogStatistics {
   total: number;
@@ -312,7 +313,7 @@ const LogsSection: React.FC = () => {
                               </div>
                               <div className="flex items-center space-x-1">
                                 <Clock className="h-3 w-3" />
-                                <span>{log.friendly_date || new Date(log.created_at).toLocaleString('es-ES')}</span>
+                                <span>{log.friendly_date || formatDateTimeForLogs(log.created_at)}</span>
                               </div>
                               {log.location_info && (
                                 <span className="text-gray-400">
