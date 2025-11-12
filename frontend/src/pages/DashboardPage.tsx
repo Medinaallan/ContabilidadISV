@@ -13,7 +13,6 @@ import {
   ChevronDown,
   FileText,
   UserPlus,
-  UserCheck
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Loading from '@/components/Loading';
@@ -23,11 +22,11 @@ import toast from 'react-hot-toast';
 import HomeSection from '@/components/sections/HomeSection';
 import UploadSection from '@/components/sections/UploadSection';
 import HistorySection from '@/components/sections/HistorySection';
-import ReportsSection from '@/components/sections/ReportsSection';
+
 import LogsSection from '@/components/sections/LogsSection';
 import UsersSection from '@/components/sections/UsersSection';
 import ClientsViewSection from '@/components/sections/ClientsViewSection';
-import ClientsProfileSection from '@/components/sections/ClientsProfileSection';
+
 
 // Tipos para las secciones
 type SectionKey = 'home' | 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile';

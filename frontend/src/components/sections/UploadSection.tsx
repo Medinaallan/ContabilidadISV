@@ -84,7 +84,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false); // Cambiar a false para que no se abra automáticamente
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
-  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', rtn: '' });
+
   const [periodo, setPeriodo] = useState({ 
     fechaInicio: '', 
     fechaFin: '' 
@@ -433,22 +433,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
     }
   };
 
-  // Crear nuevo cliente
-  const handleCrearCliente = () => {
-    if (!nuevoCliente.nombre || !nuevoCliente.rtn) {
-      toast.error('Complete todos los campos del cliente');
-      return;
-    }
-    
-    const cliente: Cliente = {
-      id: Date.now(), // ID temporal
-      nombre_empresa: nuevoCliente.nombre.toUpperCase(),
-      rtn: nuevoCliente.rtn
-    };
-    
-    setClienteSeleccionado(cliente);
-    setNuevoCliente({ nombre: '', rtn: '' });
-  };
+
 
   // Iniciar consolidación
   const handleIniciarConsolidacion = () => {
@@ -486,7 +471,6 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
     setShowModal(false);
     setClienteSeleccionado(null);
     setClienteSeleccionadoId('');
-    setNuevoCliente({ nombre: '', rtn: '' });
     setPeriodo({ fechaInicio: '', fechaFin: '' });
     setTipoRubro('');
   };
