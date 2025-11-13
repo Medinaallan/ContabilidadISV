@@ -7,10 +7,17 @@ const router = express.Router();
 // Middleware de autenticación para todas las rutas
 router.use(authenticateToken);
 
-// Obtener todos los totales/reportes
-router.get('/totals', reportsController.getAllTotals);
+// Obtener métricas de consolidaciones
+router.get('/metrics', reportsController.getMetrics);
 
-// Obtener resumen del dashboard
-router.get('/dashboard', reportsController.getDashboardSummary);
+// Obtener ranking de clientes
+router.get('/ranking', reportsController.getRanking);
+
+// Obtener resúmenes detallados por cliente
+router.get('/summaries', reportsController.getSummaries);
+
+// Rutas legacy comentadas hasta implementar
+// router.get('/totals', reportsController.getAllTotals);
+// router.get('/dashboard', reportsController.getDashboardSummary);
 
 module.exports = router;

@@ -22,7 +22,7 @@ import toast from 'react-hot-toast';
 import HomeSection from '@/components/sections/HomeSection';
 import UploadSection from '@/components/sections/UploadSection';
 import HistorySection from '@/components/sections/HistorySection';
-
+import ReportsSection from '@/components/sections/ReportsSection';
 import LogsSection from '@/components/sections/LogsSection';
 import UsersSection from '@/components/sections/UsersSection';
 import ClientsViewSection from '@/components/sections/ClientsViewSection';
@@ -72,6 +72,14 @@ const DashboardPage: React.FC = () => {
     },
   ];
 
+  // Item de reportes (disponible para todos los usuarios)
+  const reportsItem: NavItem = {
+    key: 'reports',
+    label: 'Reportes',
+    icon: BarChart3,
+    component: ReportsSection,
+  };
+
   // Items de navegación independientes (solo para admin)
   const independentNavItems: NavItem[] = user?.role === 'admin' ? [
     {
@@ -99,7 +107,7 @@ const DashboardPage: React.FC = () => {
   };
 
   // Todos los items disponibles (para encontrar el componente activo)
-  const allNavItems: NavItem[] = [homeItem, ...consolidacionesItems, ...clientesItems, ...independentNavItems, ...adminItems];
+  const allNavItems: NavItem[] = [homeItem, reportsItem, ...consolidacionesItems, ...clientesItems, ...independentNavItems, ...adminItems];
 
   // Actualizar reloj cada segundo
   useEffect(() => {
@@ -173,14 +181,13 @@ const DashboardPage: React.FC = () => {
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo y título */}
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-white" />
-              </div>
-              <h1 className="text-xl font-semibold text-gray-900">
-                SERVICIOS CONTABLES DE OCCIDENTE
-              </h1>
+            {/* Logo */}
+            <div className="flex items-center">
+              <img 
+                src="/logo-home.png" 
+                alt="Servicios Contables de Occidente" 
+                className="h-12 w-30"
+              />
             </div>
 
             {/* Navegación principal */}
@@ -198,6 +205,21 @@ const DashboardPage: React.FC = () => {
               >
                 <BarChart3 className="h-4 w-4" />
                 <span>Inicio</span>
+              </button>
+
+              {/* Botón de Reportes */}
+              <button
+                onClick={() => setActiveSection('reports')}
+                className={`
+                  flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${activeSection === 'reports'
+                    ? 'bg-primary-100 text-primary-700 border border-primary-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }
+                `}
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>Reportes</span>
               </button>
 
               {/* Menú dropdown de Consolidaciones */}

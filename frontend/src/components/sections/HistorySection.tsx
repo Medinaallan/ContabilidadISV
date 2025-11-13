@@ -26,6 +26,13 @@ const HistorySection: React.FC = () => {
       try {
         setIsLoading(true);
         const response = await consolidacionService.getHistory();
+        console.log('Datos de consolidaciones recibidos:', response.data);
+        // Verificar si las consolidaciones tienen los campos total_debe y total_haber
+        if (response.data.length > 0) {
+          console.log('Primera consolidación:', response.data[0]);
+          console.log('total_debe:', response.data[0].total_debe);
+          console.log('total_haber:', response.data[0].total_haber);
+        }
         setConsolidaciones(response.data);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Error cargando historial de consolidaciones';
@@ -144,10 +151,12 @@ const HistorySection: React.FC = () => {
       });
 
       // Agregar totales
+      const totalDebe = calcularTotalDebe(detalles);
+      const totalHaber = calcularTotalHaber(detalles);
       worksheetData.push(['']);
-      worksheetData.push(['TOTALES', detalles.total_debe || 0, detalles.total_haber || 0]);
+      worksheetData.push(['TOTALES', totalDebe, totalHaber]);
       worksheetData.push(['']);
-      worksheetData.push(['BALANCE', (detalles.total_debe || 0) - (detalles.total_haber || 0)]);
+      worksheetData.push(['BALANCE', totalDebe - totalHaber]);
 
       // Crear libro de trabajo
       const wb = XLSX.utils.book_new();
@@ -176,6 +185,114 @@ const HistorySection: React.FC = () => {
 
 
   // Generar PDF directo con jsPDF
+  // Calcular total DEBE dinámicamente
+  const calcularTotalDebe = (consolidacion: any) => {
+    const camposDebe = [
+      'caja_bancos_debe',
+      'ventas_gravadas_15_debe',
+      'isv_15_ventas_debe',
+      'ventas_gravadas_18_debe',
+      'isv_18_ventas_debe',
+      'ist_4_debe',
+      'ventas_exentas_debe',
+      'compras_gravadas_15_debe',
+      'isv_15_compras_debe',
+      'compras_gravadas_18_debe',
+      'isv_18_compras_debe',
+      'compras_exentas_debe',
+      'ingresos_honorarios_debe',
+      'sueldos_salarios_debe',
+      'treceavo_mes_debe',
+      'catorceavo_mes_debe',
+      'prestaciones_laborales_debe',
+      'energia_electrica_debe',
+      'suministro_agua_debe',
+      'hondutel_debe',
+      'servicio_internet_debe',
+      'ihss_debe',
+      'aportaciones_infop_debe',
+      'aportaciones_rap_debe',
+      'papeleria_utiles_debe',
+      'alquileres_debe',
+      'combustibles_lubricantes_debe',
+      'seguros_debe',
+      'viaticos_gastos_viaje_debe',
+      'impuestos_municipales_debe',
+      'impuestos_estatales_debe',
+      'honorarios_profesionales_debe',
+      'mantenimiento_vehiculos_debe',
+      'reparacion_mantenimiento_debe',
+      'fletes_encomiendas_debe',
+      'limpieza_aseo_debe',
+      'seguridad_vigilancia_debe',
+      'materiales_suministros_debe',
+      'publicidad_propaganda_debe',
+      'gastos_bancarios_debe',
+      'intereses_financieros_debe',
+      'tasa_seguridad_poblacional_debe',
+      'gastos_varios_debe'
+    ];
+
+    return camposDebe.reduce((total, campo) => {
+      const valor = Number(consolidacion[campo]) || 0;
+      return total + valor;
+    }, 0);
+  };
+
+  // Calcular total HABER dinámicamente
+  const calcularTotalHaber = (consolidacion: any) => {
+    const camposHaber = [
+      'caja_bancos_haber',
+      'ventas_gravadas_15_haber',
+      'isv_15_ventas_haber',
+      'ventas_gravadas_18_haber',
+      'isv_18_ventas_haber',
+      'ist_4_haber',
+      'ventas_exentas_haber',
+      'compras_gravadas_15_haber',
+      'isv_15_compras_haber',
+      'compras_gravadas_18_haber',
+      'isv_18_compras_haber',
+      'compras_exentas_haber',
+      'ingresos_honorarios_haber',
+      'sueldos_salarios_haber',
+      'treceavo_mes_haber',
+      'catorceavo_mes_haber',
+      'prestaciones_laborales_haber',
+      'energia_electrica_haber',
+      'suministro_agua_haber',
+      'hondutel_haber',
+      'servicio_internet_haber',
+      'ihss_haber',
+      'aportaciones_infop_haber',
+      'aportaciones_rap_haber',
+      'papeleria_utiles_haber',
+      'alquileres_haber',
+      'combustibles_lubricantes_haber',
+      'seguros_haber',
+      'viaticos_gastos_viaje_haber',
+      'impuestos_municipales_haber',
+      'impuestos_estatales_haber',
+      'honorarios_profesionales_haber',
+      'mantenimiento_vehiculos_haber',
+      'reparacion_mantenimiento_haber',
+      'fletes_encomiendas_haber',
+      'limpieza_aseo_haber',
+      'seguridad_vigilancia_haber',
+      'materiales_suministros_haber',
+      'publicidad_propaganda_haber',
+      'gastos_bancarios_haber',
+      'intereses_financieros_haber',
+      'tasa_seguridad_poblacional_haber',
+      'gastos_varios_haber'
+    ];
+
+    return camposHaber.reduce((total, campo) => {
+      const valor = Number(consolidacion[campo]) || 0;
+      return total + valor;
+    }, 0);
+  };
+
   const handleGenerateDirectPDF = async (consolidacion: Consolidacion) => {
     try {
       const detalles = await consolidacionService.getById(consolidacion.id, consolidacion.tipo);
@@ -298,7 +415,9 @@ const HistorySection: React.FC = () => {
       });
       
       // Agregar fila de totales
-      tableData.push(['TOTALES', formatCurrency(detalles.total_debe || 0), formatCurrency(detalles.total_haber || 0)]);
+      const totalDebe = calcularTotalDebe(detalles);
+      const totalHaber = calcularTotalHaber(detalles);
+      tableData.push(['TOTALES', formatCurrency(totalDebe), formatCurrency(totalHaber)]);
       
       // Crear tabla
       autoTable(pdf, {
@@ -491,13 +610,13 @@ const HistorySection: React.FC = () => {
                     
                     <td className="table-cell">
                       <div className="text-sm font-medium text-green-600">
-                        {formatCurrency(consolidacion.total_debe)}
+                        {formatCurrency(calcularTotalDebe(consolidacion))}
                       </div>
                     </td>
                     
                     <td className="table-cell">
                       <div className="text-sm font-medium text-red-600">
-                        {formatCurrency(consolidacion.total_haber)}
+                        {formatCurrency(calcularTotalHaber(consolidacion))}
                       </div>
                     </td>
                     

@@ -90,12 +90,18 @@ export const formatDateForAPI = (dateString: string): string => {
  * @param amount - Cantidad a formatear
  * @returns String con formato de moneda
  */
-export const formatCurrency = (amount: number): string => {
+export const formatCurrency = (amount: number | string | null | undefined): string => {
+  // Convertir a número y validar
+  const numAmount = Number(amount);
+  
+  // Si es NaN, null, undefined o no es un número válido, usar 0
+  const validAmount = isNaN(numAmount) ? 0 : numAmount;
+  
   return new Intl.NumberFormat('es-HN', {
     style: 'currency',
     currency: 'HNL',
     minimumFractionDigits: 2
-  }).format(amount || 0);
+  }).format(validAmount);
 };
 
 /**

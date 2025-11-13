@@ -31,10 +31,10 @@ class ConsolidacionGenerales {
         if (key.includes('fecha')) {
             return sql.Date;
         }
-        if (key.includes('_debe') || key.includes('_haber') || key.includes('total')) {
+        if (key.includes('_debe') || key.includes('_haber') || key.includes('total') || key === 'diferencia') {
             return sql.Decimal(18, 2);
         }
-        if (typeof value === 'boolean') {
+        if (typeof value === 'boolean' || key === 'balanceado') {
             return sql.Bit;
         }
         return sql.NVarChar;
@@ -137,6 +137,57 @@ class ConsolidacionGenerales {
                 gastos_varios_haber = 0
             } = consolidacionData;
 
+            // Calcular totales
+            const total_debe = 
+                (parseFloat(caja_bancos_debe) || 0) + (parseFloat(ventas_gravadas_15_debe) || 0) + (parseFloat(isv_15_ventas_debe) || 0) +
+                (parseFloat(ventas_gravadas_18_debe) || 0) + (parseFloat(isv_18_ventas_debe) || 0) + (parseFloat(ventas_exentas_debe) || 0) +
+                (parseFloat(compras_gravadas_15_debe) || 0) + (parseFloat(isv_15_compras_debe) || 0) + (parseFloat(compras_gravadas_18_debe) || 0) +
+                (parseFloat(isv_18_compras_debe) || 0) + (parseFloat(compras_exentas_debe) || 0) + (parseFloat(ingresos_honorarios_debe) || 0) +
+                (parseFloat(sueldos_salarios_debe) || 0) + (parseFloat(treceavo_mes_debe) || 0) + (parseFloat(catorceavo_mes_debe) || 0) +
+                (parseFloat(prestaciones_laborales_debe) || 0) + (parseFloat(energia_electrica_debe) || 0) + (parseFloat(suministro_agua_debe) || 0) +
+                (parseFloat(hondutel_debe) || 0) + (parseFloat(servicio_internet_debe) || 0) + (parseFloat(ihss_debe) || 0) +
+                (parseFloat(aportaciones_infop_debe) || 0) + (parseFloat(aportaciones_rap_debe) || 0) + (parseFloat(papeleria_utiles_debe) || 0) +
+                (parseFloat(alquileres_debe) || 0) + (parseFloat(combustibles_lubricantes_debe) || 0) + (parseFloat(seguros_debe) || 0) +
+                (parseFloat(viaticos_gastos_viaje_debe) || 0) + (parseFloat(impuestos_municipales_debe) || 0) + (parseFloat(impuestos_estatales_debe) || 0) +
+                (parseFloat(honorarios_profesionales_debe) || 0) + (parseFloat(mantenimiento_vehiculos_debe) || 0) + (parseFloat(reparacion_mantenimiento_debe) || 0) +
+                (parseFloat(fletes_encomiendas_debe) || 0) + (parseFloat(limpieza_aseo_debe) || 0) + (parseFloat(seguridad_vigilancia_debe) || 0) +
+                (parseFloat(materiales_suministros_debe) || 0) + (parseFloat(publicidad_propaganda_debe) || 0) + (parseFloat(gastos_bancarios_debe) || 0) +
+                (parseFloat(intereses_financieros_debe) || 0) + (parseFloat(tasa_seguridad_poblacional_debe) || 0) + (parseFloat(gastos_varios_debe) || 0);
+
+            const total_haber = 
+                (parseFloat(caja_bancos_haber) || 0) + (parseFloat(ventas_gravadas_15_haber) || 0) + (parseFloat(isv_15_ventas_haber) || 0) +
+                (parseFloat(ventas_gravadas_18_haber) || 0) + (parseFloat(isv_18_ventas_haber) || 0) + (parseFloat(ventas_exentas_haber) || 0) +
+                (parseFloat(compras_gravadas_15_haber) || 0) + (parseFloat(isv_15_compras_haber) || 0) + (parseFloat(compras_gravadas_18_haber) || 0) +
+                (parseFloat(isv_18_compras_haber) || 0) + (parseFloat(compras_exentas_haber) || 0) + (parseFloat(ingresos_honorarios_haber) || 0) +
+                (parseFloat(sueldos_salarios_haber) || 0) + (parseFloat(treceavo_mes_haber) || 0) + (parseFloat(catorceavo_mes_haber) || 0) +
+                (parseFloat(prestaciones_laborales_haber) || 0) + (parseFloat(energia_electrica_haber) || 0) + (parseFloat(suministro_agua_haber) || 0) +
+                (parseFloat(hondutel_haber) || 0) + (parseFloat(servicio_internet_haber) || 0) + (parseFloat(ihss_haber) || 0) +
+                (parseFloat(aportaciones_infop_haber) || 0) + (parseFloat(aportaciones_rap_haber) || 0) + (parseFloat(papeleria_utiles_haber) || 0) +
+                (parseFloat(alquileres_haber) || 0) + (parseFloat(combustibles_lubricantes_haber) || 0) + (parseFloat(seguros_haber) || 0) +
+                (parseFloat(viaticos_gastos_viaje_haber) || 0) + (parseFloat(impuestos_municipales_haber) || 0) + (parseFloat(impuestos_estatales_haber) || 0) +
+                (parseFloat(honorarios_profesionales_haber) || 0) + (parseFloat(mantenimiento_vehiculos_haber) || 0) + (parseFloat(reparacion_mantenimiento_haber) || 0) +
+                (parseFloat(fletes_encomiendas_haber) || 0) + (parseFloat(limpieza_aseo_haber) || 0) + (parseFloat(seguridad_vigilancia_haber) || 0) +
+                (parseFloat(materiales_suministros_haber) || 0) + (parseFloat(publicidad_propaganda_haber) || 0) + (parseFloat(gastos_bancarios_haber) || 0) +
+                (parseFloat(intereses_financieros_haber) || 0) + (parseFloat(tasa_seguridad_poblacional_haber) || 0) + (parseFloat(gastos_varios_haber) || 0);
+
+            // Validar que los totales sean números válidos
+            const validTotalDebe = isNaN(total_debe) || !isFinite(total_debe) ? 0 : parseFloat(total_debe.toFixed(2));
+            const validTotalHaber = isNaN(total_haber) || !isFinite(total_haber) ? 0 : parseFloat(total_haber.toFixed(2));
+            
+            // Calcular diferencia con validación adicional
+            let diferencia = validTotalDebe - validTotalHaber;
+            diferencia = isNaN(diferencia) || !isFinite(diferencia) ? 0 : parseFloat(diferencia.toFixed(2));
+            
+            const balanceado = Math.abs(diferencia) < 0.01; // Considerar balanceado si la diferencia es menor a 1 centavo
+            
+            // Debug logging
+            console.log('Valores calculados:', {
+                total_debe: validTotalDebe,
+                total_haber: validTotalHaber,
+                diferencia: diferencia,
+                balanceado: balanceado
+            });
+
             const query = `
                 INSERT INTO consolidaciones_generales (
                     cliente_id, usuario_id, fecha_inicio, fecha_fin, observaciones,
@@ -157,7 +208,8 @@ class ConsolidacionGenerales {
                     combustibles_lubricantes_haber, seguros_haber, viaticos_gastos_viaje_haber, impuestos_municipales_haber, impuestos_estatales_haber,
                     honorarios_profesionales_haber, mantenimiento_vehiculos_haber, reparacion_mantenimiento_haber, fletes_encomiendas_haber, limpieza_aseo_haber,
                     seguridad_vigilancia_haber, materiales_suministros_haber, publicidad_propaganda_haber, gastos_bancarios_haber, intereses_financieros_haber,
-                    tasa_seguridad_poblacional_haber, gastos_varios_haber
+                    tasa_seguridad_poblacional_haber, gastos_varios_haber,
+                    total_debe, total_haber, diferencia, balanceado
                 )
                 OUTPUT INSERTED.id
                 VALUES (
@@ -179,7 +231,8 @@ class ConsolidacionGenerales {
                     @combustibles_lubricantes_haber, @seguros_haber, @viaticos_gastos_viaje_haber, @impuestos_municipales_haber, @impuestos_estatales_haber,
                     @honorarios_profesionales_haber, @mantenimiento_vehiculos_haber, @reparacion_mantenimiento_haber, @fletes_encomiendas_haber, @limpieza_aseo_haber,
                     @seguridad_vigilancia_haber, @materiales_suministros_haber, @publicidad_propaganda_haber, @gastos_bancarios_haber, @intereses_financieros_haber,
-                    @tasa_seguridad_poblacional_haber, @gastos_varios_haber
+                    @tasa_seguridad_poblacional_haber, @gastos_varios_haber,
+                    @total_debe, @total_haber, @diferencia, @balanceado
                 )
             `;
 
@@ -204,7 +257,9 @@ class ConsolidacionGenerales {
                 combustibles_lubricantes_haber, seguros_haber, viaticos_gastos_viaje_haber, impuestos_municipales_haber, impuestos_estatales_haber,
                 honorarios_profesionales_haber, mantenimiento_vehiculos_haber, reparacion_mantenimiento_haber, fletes_encomiendas_haber, limpieza_aseo_haber,
                 seguridad_vigilancia_haber, materiales_suministros_haber, publicidad_propaganda_haber, gastos_bancarios_haber, intereses_financieros_haber,
-                tasa_seguridad_poblacional_haber, gastos_varios_haber
+                tasa_seguridad_poblacional_haber, gastos_varios_haber,
+                // TOTALES CALCULADOS
+                total_debe: validTotalDebe, total_haber: validTotalHaber, diferencia, balanceado
             };
 
             const result = await this.executeQuery(query, params);

@@ -52,7 +52,8 @@ app.use(cors({
     // IPs específicas
     'http://26.171.184.161:5174',
     'http://26.120.44.48:5174',
-    'http://192.168.1.18:5174'
+    'http://192.168.1.18:5174',
+    'http://26.23.200.187:5174'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

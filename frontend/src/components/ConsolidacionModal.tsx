@@ -34,6 +34,58 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
     }).format(amount || 0);
   };
 
+  // Calcular total DEBE dinámicamente
+  const calcularTotalDebe = (consolidacion: any) => {
+    const camposDebe = [
+      'caja_bancos_debe', 'ventas_gravadas_15_debe', 'isv_15_ventas_debe',
+      'ventas_gravadas_18_debe', 'isv_18_ventas_debe', 'ist_4_debe',
+      'ventas_exentas_debe', 'compras_gravadas_15_debe', 'isv_15_compras_debe',
+      'compras_gravadas_18_debe', 'isv_18_compras_debe', 'compras_exentas_debe',
+      'ingresos_honorarios_debe', 'sueldos_salarios_debe', 'treceavo_mes_debe',
+      'catorceavo_mes_debe', 'prestaciones_laborales_debe', 'energia_electrica_debe',
+      'suministro_agua_debe', 'hondutel_debe', 'servicio_internet_debe',
+      'ihss_debe', 'aportaciones_infop_debe', 'aportaciones_rap_debe',
+      'papeleria_utiles_debe', 'alquileres_debe', 'combustibles_lubricantes_debe',
+      'seguros_debe', 'viaticos_gastos_viaje_debe', 'impuestos_municipales_debe',
+      'impuestos_estatales_debe', 'honorarios_profesionales_debe', 'mantenimiento_vehiculos_debe',
+      'reparacion_mantenimiento_debe', 'fletes_encomiendas_debe', 'limpieza_aseo_debe',
+      'seguridad_vigilancia_debe', 'materiales_suministros_debe', 'publicidad_propaganda_debe',
+      'gastos_bancarios_debe', 'intereses_financieros_debe', 'tasa_seguridad_poblacional_debe',
+      'gastos_varios_debe'
+    ];
+
+    return camposDebe.reduce((total, campo) => {
+      const valor = Number(consolidacion[campo]) || 0;
+      return total + valor;
+    }, 0);
+  };
+
+  // Calcular total HABER dinámicamente
+  const calcularTotalHaber = (consolidacion: any) => {
+    const camposHaber = [
+      'caja_bancos_haber', 'ventas_gravadas_15_haber', 'isv_15_ventas_haber',
+      'ventas_gravadas_18_haber', 'isv_18_ventas_haber', 'ist_4_haber',
+      'ventas_exentas_haber', 'compras_gravadas_15_haber', 'isv_15_compras_haber',
+      'compras_gravadas_18_haber', 'isv_18_compras_haber', 'compras_exentas_haber',
+      'ingresos_honorarios_haber', 'sueldos_salarios_haber', 'treceavo_mes_haber',
+      'catorceavo_mes_haber', 'prestaciones_laborales_haber', 'energia_electrica_haber',
+      'suministro_agua_haber', 'hondutel_haber', 'servicio_internet_haber',
+      'ihss_haber', 'aportaciones_infop_haber', 'aportaciones_rap_haber',
+      'papeleria_utiles_haber', 'alquileres_haber', 'combustibles_lubricantes_haber',
+      'seguros_haber', 'viaticos_gastos_viaje_haber', 'impuestos_municipales_haber',
+      'impuestos_estatales_haber', 'honorarios_profesionales_haber', 'mantenimiento_vehiculos_haber',
+      'reparacion_mantenimiento_haber', 'fletes_encomiendas_haber', 'limpieza_aseo_haber',
+      'seguridad_vigilancia_haber', 'materiales_suministros_haber', 'publicidad_propaganda_haber',
+      'gastos_bancarios_haber', 'intereses_financieros_haber', 'tasa_seguridad_poblacional_haber',
+      'gastos_varios_haber'
+    ];
+
+    return camposHaber.reduce((total, campo) => {
+      const valor = Number(consolidacion[campo]) || 0;
+      return total + valor;
+    }, 0);
+  };
+
   // Mapeo de campos de la base de datos a nombres amigables
   const cuentasMap = [
     { key: 'caja_bancos', nombre: 'Caja y Bancos' },
@@ -176,7 +228,7 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
                   <span className="text-sm font-medium text-gray-700">Total Debe</span>
                 </div>
                 <p className="text-lg font-semibold text-green-600">
-                  {formatCurrency(consolidacion.total_debe || 0)}
+                  {formatCurrency(calcularTotalDebe(consolidacion))}
                 </p>
               </div>
 
@@ -186,7 +238,7 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
                   <span className="text-sm font-medium text-gray-700">Total Haber</span>
                 </div>
                 <p className="text-lg font-semibold text-red-600">
-                  {formatCurrency(consolidacion.total_haber || 0)}
+                  {formatCurrency(calcularTotalHaber(consolidacion))}
                 </p>
               </div>
             </div>
@@ -195,11 +247,11 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
             <div className="bg-blue-50 p-4 rounded-lg">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Balance</h4>
               <p className={`text-xl font-bold ${
-                (consolidacion.total_debe || 0) - (consolidacion.total_haber || 0) >= 0 
+                calcularTotalDebe(consolidacion) - calcularTotalHaber(consolidacion) >= 0 
                   ? 'text-green-600' 
                   : 'text-red-600'
               }`}>
-                {formatCurrency((consolidacion.total_debe || 0) - (consolidacion.total_haber || 0))}
+                {formatCurrency(calcularTotalDebe(consolidacion) - calcularTotalHaber(consolidacion))}
               </p>
             </div>
 
@@ -245,10 +297,10 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
                         TOTALES
                       </td>
                       <td className="px-6 py-4 text-sm text-right text-green-600">
-                        {formatCurrency(consolidacion.total_debe || 0)}
+                        {formatCurrency(calcularTotalDebe(consolidacion))}
                       </td>
                       <td className="px-6 py-4 text-sm text-right text-red-600">
-                        {formatCurrency(consolidacion.total_haber || 0)}
+                        {formatCurrency(calcularTotalHaber(consolidacion))}
                       </td>
                     </tr>
                   </tbody>
