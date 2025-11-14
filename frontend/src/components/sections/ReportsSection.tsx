@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatDate, formatCurrency } from '../../utils/dateUtils';
+import { reportsService, clientesApi } from '../../services/api';
 
 interface ConsolidacionMetrics {
   totalConsolidaciones: number;
@@ -124,10 +125,18 @@ const ReportsSection: React.FC = () => {
   const [summaries, setSummaries] = useState<ConsolidacionSumario[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  // Filtros
+  // Filtros generales (para metrics y ranking)
   const [selectedYear, setSelectedYear] = useState<string>('todos');
   const [selectedCliente, setSelectedCliente] = useState<string>('todos');
+  
+  // Filtros específicos para resúmenes
+  const [summariesFilters, setSummariesFilters] = useState({
+    cliente: 'todos',
+    año: new Date().getFullYear().toString(),
+    periodo: 'anual'
+  });
   
   // Años disponibles (últimos 5 años)
   const currentYear = new Date().getFullYear();
@@ -142,37 +151,38 @@ const ReportsSection: React.FC = () => {
       loadMetrics();
     } else if (activeTab === 'ranking') {
       loadRanking();
-    } else if (activeTab === 'summaries') {
-      loadSummaries();
     }
+    // Summaries will be loaded manually when Apply button is clicked
   }, [activeTab, selectedYear, selectedCliente]);
 
   const loadClientes = async () => {
     try {
-      const response = await fetch('/api/clientes');
-      if (response.ok) {
-        const data = await response.json();
-        setClientes(data);
-      }
+      const response = await clientesApi.getAll(true);
+      setClientes(response.clientes);
     } catch (error) {
       console.error('Error loading clientes:', error);
+      setError('Error cargando clientes');
     }
   };
 
   const loadMetrics = async () => {
+    console.log('=== LOADING METRICS ===');
     setLoading(true);
+    setError(null);
     try {
-      const params = new URLSearchParams();
-      if (selectedYear !== 'todos') params.append('year', selectedYear);
-      if (selectedCliente !== 'todos') params.append('clienteId', selectedCliente);
+      const params = {
+        year: selectedYear !== 'todos' ? selectedYear : undefined,
+        clienteId: selectedCliente !== 'todos' ? selectedCliente : undefined
+      };
       
-      const response = await fetch(`/api/reports/metrics?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMetrics(data);
-      }
+      console.log('Loading metrics with params:', params);
+      const data = await reportsService.getMetrics(params);
+      console.log('Received metrics data:', data);
+      setMetrics(data);
     } catch (error) {
+      console.error('=== ERROR LOADING METRICS ===');
       console.error('Error loading metrics:', error);
+      setError(`Error cargando métricas: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -180,17 +190,17 @@ const ReportsSection: React.FC = () => {
 
   const loadRanking = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const params = new URLSearchParams();
-      if (selectedYear !== 'todos') params.append('year', selectedYear);
+      const params = {
+        year: selectedYear !== 'todos' ? selectedYear : undefined
+      };
       
-      const response = await fetch(`/api/reports/ranking?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setRanking(data);
-      }
+      const data = await reportsService.getRanking(params);
+      setRanking(data);
     } catch (error) {
       console.error('Error loading ranking:', error);
+      setError(`Error cargando ranking: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -198,21 +208,60 @@ const ReportsSection: React.FC = () => {
 
   const loadSummaries = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const params = new URLSearchParams();
-      if (selectedYear !== 'todos') params.append('year', selectedYear);
-      if (selectedCliente !== 'todos') params.append('clienteId', selectedCliente);
+      const params = {
+        year: summariesFilters.año,
+        clienteId: summariesFilters.cliente !== 'todos' ? summariesFilters.cliente : undefined,
+        periodo: summariesFilters.periodo
+      };
       
-      const response = await fetch(`/api/reports/summaries?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSummaries(data);
-      }
+      const data = await reportsService.getSummaries(params);
+      setSummaries(data);
     } catch (error) {
       console.error('Error loading summaries:', error);
+      setError(`Error cargando resúmenes: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleApplySummariesFilters = () => {
+    loadSummaries();
+  };
+
+  const generatePeriodOptions = (year: string) => {
+    const periods = [
+      { value: 'anual', label: `Anual ${year}` }
+    ];
+    
+    // Bimestral (6 periods)
+    for (let i = 1; i <= 6; i++) {
+      const startMonth = (i - 1) * 2 + 1;
+      const endMonth = i * 2;
+      periods.push({
+        value: `bimestral-${i}`,
+        label: `Bimestre ${i} (${startMonth.toString().padStart(2, '0')}/${year} - ${endMonth.toString().padStart(2, '0')}/${year})`
+      });
+    }
+    
+    // Trimestral (4 periods)
+    for (let i = 1; i <= 4; i++) {
+      const startMonth = (i - 1) * 3 + 1;
+      const endMonth = i * 3;
+      periods.push({
+        value: `trimestral-${i}`,
+        label: `Trimestre ${i} (${startMonth.toString().padStart(2, '0')}/${year} - ${endMonth.toString().padStart(2, '0')}/${year})`
+      });
+    }
+    
+    // Semestral (2 periods)
+    periods.push(
+      { value: 'semestral-1', label: `Primer Semestre ${year} (01/${year} - 06/${year})` },
+      { value: 'semestral-2', label: `Segundo Semestre ${year} (07/${year} - 12/${year})` }
+    );
+    
+    return periods;
   };
 
   const calcularTotalDebe = (sumario: ConsolidacionSumario): number => {
@@ -385,6 +434,12 @@ const ReportsSection: React.FC = () => {
           </div>
         )}
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
         {/* Contenido de las pestañas */}
         {!loading && (
           <>
@@ -447,7 +502,62 @@ const ReportsSection: React.FC = () => {
             {/* Resúmenes por Cliente */}
             {activeTab === 'summaries' && (
               <div className="space-y-6">
-                {summaries.map((sumario) => (
+                {/* Filtros específicos para resúmenes */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Filtros de Consulta</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                      <select
+                        value={summariesFilters.cliente}
+                        onChange={(e) => setSummariesFilters(prev => ({ ...prev, cliente: e.target.value }))}
+                        className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="todos">Todos los clientes</option>
+                        {clientes.map(cliente => (
+                          <option key={cliente.id} value={cliente.id.toString()}>{cliente.nombre_empresa}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
+                      <select
+                        value={summariesFilters.año}
+                        onChange={(e) => setSummariesFilters(prev => ({ ...prev, año: e.target.value, periodo: 'anual' }))}
+                        className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {availableYears.map(year => (
+                          <option key={year} value={year.toString()}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Período</label>
+                      <select
+                        value={summariesFilters.periodo}
+                        onChange={(e) => setSummariesFilters(prev => ({ ...prev, periodo: e.target.value }))}
+                        className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {generatePeriodOptions(summariesFilters.año).map(period => (
+                          <option key={period.value} value={period.value}>{period.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleApplySummariesFilters}
+                      disabled={loading}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                    >
+                      {loading ? 'Aplicando...' : 'Aplicar Filtros'}
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Resultados */}
+                {summaries.length > 0 ? (
+                  summaries.map((sumario) => (
                   <div key={`${sumario.cliente_id}-${sumario.tipo}`} className="border rounded-lg overflow-hidden">
                     <div className="bg-gray-50 px-4 py-3 border-b">
                       <h3 className="text-lg font-semibold text-gray-800">
@@ -526,9 +636,12 @@ const ReportsSection: React.FC = () => {
                       </table>
                     </div>
                   </div>
-                ))}
-                {summaries.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">No hay datos para mostrar</p>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-2">Selecciona los filtros y presiona "Aplicar Filtros" para ver los resúmenes</p>
+                    <p className="text-sm text-gray-400">Los datos se cargarán según el cliente, año y período seleccionado</p>
+                  </div>
                 )}
               </div>
             )}

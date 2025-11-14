@@ -190,6 +190,45 @@ export const reportsService = {
     } catch (error) {
       throw handleApiError(error);
     }
+  },
+
+  getMetrics: async (params?: { year?: string; clienteId?: string }) => {
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.year && params.year !== 'todos') searchParams.append('year', params.year);
+      if (params?.clienteId && params.clienteId !== 'todos') searchParams.append('clienteId', params.clienteId);
+      
+      const response = await api.get(`/reports/metrics?${searchParams}`);
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
+
+  getRanking: async (params?: { year?: string }) => {
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.year && params.year !== 'todos') searchParams.append('year', params.year);
+      
+      const response = await api.get(`/reports/ranking?${searchParams}`);
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
+
+  getSummaries: async (params?: { year?: string; clienteId?: string; periodo?: string }) => {
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.year && params.year !== 'todos') searchParams.append('year', params.year);
+      if (params?.clienteId && params.clienteId !== 'todos') searchParams.append('clienteId', params.clienteId);
+      if (params?.periodo) searchParams.append('periodo', params.periodo);
+      
+      const response = await api.get(`/reports/summaries?${searchParams}`);
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
   }
 };
 
