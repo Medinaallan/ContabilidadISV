@@ -15,8 +15,8 @@ exports.getMetrics = async (req, res) => {
     
     // Filtro por año
     if (year && year !== 'todos') {
-      whereConditions.push('YEAR(cg.fecha_creacion) = @year');
-      whereConditions.push('YEAR(ch.fecha_creacion) = @year');
+      whereConditions.push('YEAR(cg.fecha_inicio) = @year');
+      whereConditions.push('YEAR(ch.fecha_inicio) = @year');
       params.year = parseInt(year);
     }
     
@@ -76,7 +76,7 @@ exports.getRanking = async (req, res) => {
     let params = {};
     
     if (year && year !== 'todos') {
-      whereCondition = `WHERE YEAR(cg.fecha_creacion) = @year OR YEAR(ch.fecha_creacion) = @year`;
+      whereCondition = `WHERE YEAR(cg.fecha_inicio) = @year OR YEAR(ch.fecha_inicio) = @year`;
       params.year = parseInt(year);
     }
     
@@ -91,13 +91,13 @@ exports.getRanking = async (req, res) => {
         LEFT JOIN (
           SELECT cliente_id, COUNT(*) as total 
           FROM consolidaciones_generales cg
-          WHERE cg.activo = 1 ${year && year !== 'todos' ? 'AND YEAR(cg.fecha_creacion) = @year' : ''}
+          WHERE cg.activo = 1 ${year && year !== 'todos' ? 'AND YEAR(cg.fecha_inicio) = @year' : ''}
           GROUP BY cliente_id
         ) cg_count ON c.id = cg_count.cliente_id
         LEFT JOIN (
           SELECT cliente_id, COUNT(*) as total 
           FROM consolidaciones_hoteles ch
-          WHERE ch.activo = 1 ${year && year !== 'todos' ? 'AND YEAR(ch.fecha_creacion) = @year' : ''}
+          WHERE ch.activo = 1 ${year && year !== 'todos' ? 'AND YEAR(ch.fecha_inicio) = @year' : ''}
           GROUP BY cliente_id
         ) ch_count ON c.id = ch_count.cliente_id
         WHERE c.activo = 1
@@ -132,16 +132,19 @@ exports.getRanking = async (req, res) => {
 // Obtener resúmenes por cliente
 exports.getSummaries = async (req, res) => {
   try {
+    console.log('=== SUMMARIES CALLED ===');
+    console.log('Query params:', req.query);
+    
     const { year, clienteId, periodo } = req.query;
     
     let whereConditions = [];
     let params = {};
     
-    // Build separate WHERE conditions for each query
+    // Separar WHERE de consultas por condicional de clasificacion
     let generalWhereConditions = [];
     let hotelWhereConditions = [];
     
-    // Helper function to get date range based on period
+    // FUNCION PARA OBTENER LAS CONSOLIDACIONES EN RANGO DE FECHAS
     const getDateRange = (year, periodo) => {
       const yearInt = parseInt(year);
       let startDate, endDate;
@@ -178,18 +181,24 @@ exports.getSummaries = async (req, res) => {
     // Filtro por año y período
     if (year && periodo) {
       const { startDate, endDate } = getDateRange(year, periodo);
-      generalWhereConditions.push('cg.fecha_creacion BETWEEN @startDate AND @endDate');
-      hotelWhereConditions.push('ch.fecha_creacion BETWEEN @startDate AND @endDate');
+      console.log(`Aplicando filtro por período: ${periodo} del año ${year}`);
+      console.log(`Rango de fechas: ${startDate} a ${endDate}`);
+      
+      // Filtrar por consolidaciones cuyo período se superpone con el rango solicitado
+      generalWhereConditions.push('(cg.fecha_inicio <= @endDate AND cg.fecha_fin >= @startDate)');
+      hotelWhereConditions.push('(ch.fecha_inicio <= @endDate AND ch.fecha_fin >= @startDate)');
       params.startDate = startDate;
       params.endDate = endDate;
     } else if (year && year !== 'todos') {
-      generalWhereConditions.push('YEAR(cg.fecha_creacion) = @year');
-      hotelWhereConditions.push('YEAR(ch.fecha_creacion) = @year');
+      console.log(`Aplicando filtro por año: ${year}`);
+      generalWhereConditions.push('YEAR(cg.fecha_inicio) = @year');
+      hotelWhereConditions.push('YEAR(ch.fecha_inicio) = @year');
       params.year = parseInt(year);
     }
     
     // Filtro por cliente
     if (clienteId && clienteId !== 'todos') {
+      console.log(`Aplicando filtro por cliente: ${clienteId}`);
       generalWhereConditions.push('cg.cliente_id = @clienteId');
       hotelWhereConditions.push('ch.cliente_id = @clienteId');
       params.clienteId = parseInt(clienteId);
@@ -207,6 +216,8 @@ exports.getSummaries = async (req, res) => {
       SELECT 
         cg.cliente_id,
         c.nombre_empresa as cliente_nombre,
+        c.rtn as cliente_rtn,
+        u.username as usuario_nombre,
         'general' as tipo,
         SUM(COALESCE(caja_bancos_debe, 0)) as caja_bancos_debe,
         SUM(COALESCE(ventas_gravadas_15_debe, 0)) as ventas_gravadas_15_debe,
@@ -298,8 +309,9 @@ exports.getSummaries = async (req, res) => {
         SUM(COALESCE(diferencia, 0)) as diferencia
       FROM consolidaciones_generales cg
       LEFT JOIN clientes c ON cg.cliente_id = c.id
+      LEFT JOIN users u ON cg.usuario_id = u.id
       ${generalWhereClause}
-      GROUP BY cg.cliente_id, c.nombre_empresa
+      GROUP BY cg.cliente_id, c.nombre_empresa, c.rtn, u.username
       HAVING COUNT(*) > 0
     `;
     
@@ -308,6 +320,8 @@ exports.getSummaries = async (req, res) => {
       SELECT 
         ch.cliente_id,
         c.nombre_empresa as cliente_nombre,
+        c.rtn as cliente_rtn,
+        u.username as usuario_nombre,
         'hotel' as tipo,
         SUM(COALESCE(caja_bancos_debe, 0)) as caja_bancos_debe,
         SUM(COALESCE(ventas_gravadas_15_debe, 0)) as ventas_gravadas_15_debe,
@@ -401,8 +415,9 @@ exports.getSummaries = async (req, res) => {
         SUM(COALESCE(diferencia, 0)) as diferencia
       FROM consolidaciones_hoteles ch
       LEFT JOIN clientes c ON ch.cliente_id = c.id
+      LEFT JOIN users u ON ch.usuario_id = u.id
       ${hotelWhereClause}
-      GROUP BY ch.cliente_id, c.nombre_empresa
+      GROUP BY ch.cliente_id, c.nombre_empresa, c.rtn, u.username
       HAVING COUNT(*) > 0
     `;
     
