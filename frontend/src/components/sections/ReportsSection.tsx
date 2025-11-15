@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { formatDate, formatCurrency } from '../../utils/dateUtils';
 import { reportsService, clientesApi } from '../../services/api';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as ExcelJS from 'exceljs';
 
 interface ConsolidacionMetrics {
   totalConsolidaciones: number;
@@ -19,6 +22,8 @@ interface ClienteRanking {
 interface ConsolidacionSumario {
   cliente_id: number;
   cliente_nombre: string;
+  cliente_rtn?: string;
+  usuario_nombre?: string;
   tipo: 'general' | 'hotel';
   // Campos DEBE
   caja_bancos_debe: number;
@@ -116,6 +121,7 @@ interface ConsolidacionSumario {
 interface Cliente {
   id: number;
   nombre_empresa: string;
+  rtn?: string;
 }
 
 const ReportsSection: React.FC = () => {
@@ -149,11 +155,16 @@ const ReportsSection: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'metrics') {
       loadMetrics();
-    } else if (activeTab === 'ranking') {
+    }
+    // Ranking y Summaries tienen sus propios efectos
+  }, [activeTab, selectedYear, selectedCliente]); // Solo métricas dependen de los filtros
+
+  // Efecto separado para ranking - se carga solo cuando cambia la pestaña
+  useEffect(() => {
+    if (activeTab === 'ranking') {
       loadRanking();
     }
-    // Summaries will be loaded manually when Apply button is clicked
-  }, [activeTab, selectedYear, selectedCliente]);
+  }, [activeTab]);
 
   const loadClientes = async () => {
     try {
@@ -192,11 +203,8 @@ const ReportsSection: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const params = {
-        year: selectedYear !== 'todos' ? selectedYear : undefined
-      };
-      
-      const data = await reportsService.getRanking(params);
+      // Ranking no usa filtros - muestra todos los datos
+      const data = await reportsService.getRanking({});
       setRanking(data);
     } catch (error) {
       console.error('Error loading ranking:', error);
@@ -217,6 +225,13 @@ const ReportsSection: React.FC = () => {
       };
       
       const data = await reportsService.getSummaries(params);
+      console.log('=== SUMMARIES DATA RECEIVED ===');
+      console.log('Raw data:', data);
+      console.log('First item:', data[0]);
+      if (data[0]) {
+        console.log('cliente_rtn:', data[0].cliente_rtn);
+        console.log('usuario_nombre:', data[0].usuario_nombre);
+      }
       setSummaries(data);
     } catch (error) {
       console.error('Error loading summaries:', error);
@@ -356,40 +371,464 @@ const ReportsSection: React.FC = () => {
            (sumario.gastos_varios_haber || 0);
   };
 
+  const exportSummariesToPDF = async () => {
+    if (summaries.length === 0) {
+      alert('No hay datos para exportar');
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF('portrait', 'mm', 'letter');
+      
+      // Cargar logo
+      const logoUrl = '/logo-home.png';
+      let logoDataUrl = '';
+      
+      try {
+        const response = await fetch(logoUrl);
+        const blob = await response.blob();
+        logoDataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.warn('No se pudo cargar el logo:', error);
+      }
+      
+      // Header con logo centrado
+      if (logoDataUrl) {
+        const logoHeight = 12;
+        const logoWidth = logoHeight * 2.79;
+        const pageWidth = 215.9; // Ancho carta portrait
+        const logoX = (pageWidth - logoWidth) / 2;
+        pdf.addImage(logoDataUrl, 'PNG', logoX, 10, logoWidth, logoHeight);
+      }
+      
+      // Título centrado
+      pdf.setFontSize(14);
+      const centerX = 215.9 / 2; // Centro de página carta
+      pdf.text('RESUMEN DE CONSOLIDACION POR CLIENTE', centerX, 30, { align: 'center' });
+      pdf.text('_____________________________________________________________________________', centerX, 33, { align: 'center' });
+      
+      // Información del filtro (declarar antes del bucle)
+      const selectedPeriod = generatePeriodOptions(summariesFilters.año).find(p => p.value === summariesFilters.periodo);
+      const clienteName = summariesFilters.cliente !== 'todos' 
+        ? clientes.find(c => c.id.toString() === summariesFilters.cliente)?.nombre_empresa || 'Todos'
+        : 'Todos';
+        
+      // Fecha de generación
+      const fechaActual = new Date().toLocaleDateString('es-HN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      
+      // RTN y Usuario
+      const clienteRTN = summaries.length > 0 && summaries[0].cliente_rtn 
+        ? summaries[0].cliente_rtn 
+        : 'No especificado';
+      const usuarioNombre = summaries.length > 0 && summaries[0].usuario_nombre 
+        ? summaries[0].usuario_nombre 
+        : 'No especificado';
+        
+      console.log('=== PDF EXPORT DEBUG ===');
+      console.log('Summaries length:', summaries.length);
+      console.log('First summary:', summaries[0]);
+      console.log('Cliente RTN:', clienteRTN);
+      console.log('Usuario nombre:', usuarioNombre);
+
+      // Período más grande y más arriba
+      pdf.setFontSize(12);
+      pdf.text(`PERÍODO: ${selectedPeriod?.label || summariesFilters.periodo}`, centerX, 40, { align: 'center' });
+      
+      // Cliente a la izquierda y Fecha de generación a la derecha
+      pdf.setFontSize(10);
+      
+      pdf.text(`CLIENTE: ${clienteName}`, 20, 50);
+      pdf.text(`FECHA DE GENERACIÓN: ${fechaActual}`, 195.9, 50, { align: 'right' });
+        
+      pdf.text(`RTN: ${clienteRTN}`, 20, 55);
+      pdf.text(`GENERADO POR: ${usuarioNombre}`, 195.9, 55, { align: 'right' });
+      
+      // Agrupar por cliente
+      const clientesData = summaries.reduce((acc, summary) => {
+        const key = summary.cliente_id;
+        if (!acc[key]) {
+          acc[key] = {
+            cliente: summary.cliente_nombre,
+            summaries: []
+          };
+        }
+        acc[key].summaries.push(summary);
+        return acc;
+      }, {} as Record<number, { cliente: string; summaries: ConsolidacionSumario[] }>);
+
+      let startY = 65;
+
+      // Iterar por cada cliente
+      for (const clienteData of Object.values(clientesData)) {
+        // Preparar datos de la tabla para este cliente (sin título duplicado)
+        const tableData: string[][] = [];
+        
+        // Mapeo de cuentas
+        const cuentasMap = [
+          { key: 'caja_bancos', nombre: 'Caja y Bancos' },
+          { key: 'ventas_gravadas_15', nombre: 'Ventas Gravadas 15%' },
+          { key: 'isv_15_ventas', nombre: 'I.S.V. 15%' },
+          { key: 'ventas_gravadas_18', nombre: 'Ventas Gravadas 18%' },
+          { key: 'isv_18_ventas', nombre: 'I.S.V. 18%' },
+          { key: 'ist_4', nombre: 'I.S.T. 4%' },
+          { key: 'ventas_exentas', nombre: 'Ventas Exentas' },
+          { key: 'compras_gravadas_15', nombre: 'Compras Gravadas 15%' },
+          { key: 'isv_15_compras', nombre: 'I.S.V. 15% Compras' },
+          { key: 'compras_gravadas_18', nombre: 'Compras Gravadas 18%' },
+          { key: 'isv_18_compras', nombre: 'I.S.V. 18% Compras' },
+          { key: 'compras_exentas', nombre: 'Compras Exentas' },
+          { key: 'ingresos_honorarios', nombre: 'Ingresos por Honorarios' },
+          { key: 'sueldos_salarios', nombre: 'Sueldos y Salarios' },
+          { key: 'treceavo_mes', nombre: '13 Avo mes' },
+          { key: 'catorceavo_mes', nombre: '14 Avo mes' },
+          { key: 'prestaciones_laborales', nombre: 'Prestaciones laborales' },
+          { key: 'energia_electrica', nombre: 'Energía Eléctrica' },
+          { key: 'suministro_agua', nombre: 'Suministro de Agua' },
+          { key: 'hondutel', nombre: 'Hondutel' },
+          { key: 'servicio_internet', nombre: 'Servicio de Internet' },
+          { key: 'ihss', nombre: 'IHSS' },
+          { key: 'aportaciones_infop', nombre: 'Aportaciones INFOP' },
+          { key: 'aportaciones_rap', nombre: 'Aportaciones RAP' },
+          { key: 'papeleria_utiles', nombre: 'Papelería y Útiles' },
+          { key: 'alquileres', nombre: 'Alquileres' },
+          { key: 'combustibles_lubricantes', nombre: 'Combustibles y Lubricantes' },
+          { key: 'seguros', nombre: 'Seguros' },
+          { key: 'viaticos_gastos_viaje', nombre: 'Viáticos / Gastos de viaje' },
+          { key: 'impuestos_municipales', nombre: 'Impuestos Municipales' },
+          { key: 'impuestos_estatales', nombre: 'Impuestos Estatales' },
+          { key: 'honorarios_profesionales', nombre: 'Honorarios Profesionales' },
+          { key: 'mantenimiento_vehiculos', nombre: 'Mantenimiento de Vehículos' },
+          { key: 'reparacion_mantenimiento', nombre: 'Reparación y Mantenimiento' },
+          { key: 'fletes_encomiendas', nombre: 'Fletes y encomiendas' },
+          { key: 'limpieza_aseo', nombre: 'Limpieza y Aseo' },
+          { key: 'seguridad_vigilancia', nombre: 'Seguridad y Vigilancia' },
+          { key: 'materiales_suministros', nombre: 'Materiales y Suministros' },
+          { key: 'publicidad_propaganda', nombre: 'Publicidad y Propaganda' },
+          { key: 'gastos_bancarios', nombre: 'Gastos Bancarios' },
+          { key: 'intereses_financieros', nombre: 'Intereses Financieros' },
+          { key: 'tasa_seguridad_poblacional', nombre: 'Tasa de Seguridad Poblacional' },
+          { key: 'gastos_varios', nombre: 'Gastos Varios' }
+        ];
+
+        // Sumar todos los valores para este cliente
+        const totales = clienteData.summaries.reduce((acc, summary) => {
+          cuentasMap.forEach(cuenta => {
+            const debeKey = `${cuenta.key}_debe` as keyof ConsolidacionSumario;
+            const haberKey = `${cuenta.key}_haber` as keyof ConsolidacionSumario;
+            
+            if (!acc[cuenta.key]) {
+              acc[cuenta.key] = { debe: 0, haber: 0 };
+            }
+            
+            acc[cuenta.key].debe += Number(summary[debeKey]) || 0;
+            acc[cuenta.key].haber += Number(summary[haberKey]) || 0;
+          });
+          return acc;
+        }, {} as Record<string, { debe: number; haber: number }>);
+
+        // Construir filas de la tabla
+        cuentasMap.forEach(cuenta => {
+          const debe = totales[cuenta.key]?.debe || 0;
+          const haber = totales[cuenta.key]?.haber || 0;
+          
+          // Solo incluir filas que tienen valores
+          if (debe !== 0 || haber !== 0) {
+            tableData.push([
+              cuenta.nombre,
+              formatCurrency(debe),
+              formatCurrency(haber)
+            ]);
+          }
+        });
+
+        // Agregar fila de totales
+        const totalDebe = clienteData.summaries.reduce((acc, summary) => acc + calcularTotalDebe(summary), 0);
+        const totalHaber = clienteData.summaries.reduce((acc, summary) => acc + calcularTotalHaber(summary), 0);
+        tableData.push(['TOTALES', formatCurrency(totalDebe), formatCurrency(totalHaber)]);
+
+        // Crear tabla
+        autoTable(pdf, {
+          startY: startY,
+          head: [['CUENTA', 'DEBE', 'HABER']],
+          body: tableData,
+          styles: { fontSize: 10, cellPadding: 1.5 },
+          headStyles: { 
+            fillColor: [100, 100, 100], 
+            textColor: 255,
+            halign: 'center',
+            fontSize: 11,
+            cellPadding: 2
+          },
+          columnStyles: {
+            0: { cellWidth: 110 },
+            1: { cellWidth: 40, halign: 'right' },
+            2: { cellWidth: 40, halign: 'right' }
+          }
+        });
+
+        // Actualizar posición Y para el siguiente cliente
+        startY = (pdf as any).lastAutoTable.finalY + 20;
+        
+        // Verificar si hay espacio para más contenido
+        // Si estamos cerca del final de la página, mostrar "FIN DE PAGINA" y crear nueva página
+        if (startY > 240) {
+          // Agregar "FIN DE PAGINA" centrado
+          pdf.setFontSize(16);
+          pdf.text('FIN DE PAGINA', centerX, startY + 10, { align: 'center' });
+          
+          // Crear nueva página
+          pdf.addPage();
+          
+          // Repetir encabezado en nueva página
+          if (logoDataUrl) {
+            const logoHeight = 12;
+            const logoWidth = logoHeight * 2.79;
+            const logoX = (215.9 - logoWidth) / 2;
+            pdf.addImage(logoDataUrl, 'PNG', logoX, 10, logoWidth, logoHeight);
+          }
+          
+          pdf.setFontSize(14);
+          pdf.text('RESUMEN DE CONSOLIDACION POR CLIENTE', centerX, 30, { align: 'center' });
+          pdf.text('_____________________________________________________________________________', centerX, 33, { align: 'center' });
+          
+          pdf.setFontSize(12);
+          pdf.text(`PERÍODO: ${selectedPeriod?.label || summariesFilters.periodo}`, centerX, 40, { align: 'center' });
+          
+          pdf.setFontSize(10);
+          pdf.text(`CLIENTE: ${clienteName}`, 20, 50);
+          pdf.text(`FECHA DE GENERACIÓN: ${fechaActual}`, 195.9, 50, { align: 'right' });
+          pdf.text(`RTN: ${clienteRTN}`, 20, 55);
+          pdf.text(`GENERADO POR: ${usuarioNombre}`, 195.9, 55, { align: 'right' });
+          
+          startY = 70;
+        }
+      }
+      
+      // Footer
+      const pageHeight = pdf.internal.pageSize.height;
+      pdf.setFontSize(8);
+      pdf.text('Servicios Contables de Occidente - Departamento de Desarrollo Tecnológico', centerX, pageHeight - 20, { align: 'center' });
+      pdf.text('Todos los datos declarados en este reporte, se manejan con estricta confidencialidad.', centerX, pageHeight - 15, { align: 'center' });
+      
+      // Descargar PDF
+      const fileName = `Resumen_por_Cliente_${summariesFilters.año}_${summariesFilters.periodo}_${fechaActual.replace(/\//g, '-')}.pdf`;
+      pdf.save(fileName);
+      
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el PDF');
+    }
+  };
+
+  const exportSummariesToExcel = async () => {
+    if (summaries.length === 0) {
+      alert('No hay datos para exportar');
+      return;
+    }
+
+    try {
+      // Cargar la plantilla Excel con ExcelJS
+      const templatePath = '/template_xlsx_resumen.xlsx';
+      const response = await fetch(templatePath);
+      
+      if (!response.ok) {
+        throw new Error('No se pudo cargar la plantilla Excel');
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
+      const worksheet = workbook.getWorksheet(1);
+      
+      if (!worksheet) {
+        throw new Error('No se pudo acceder a la hoja de trabajo');
+      }
+      
+      // Información del filtro
+      const fechaActual = new Date().toLocaleDateString('es-HN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      
+      // RTN y Usuario
+      const clienteRTN = summaries.length > 0 && summaries[0].cliente_rtn 
+        ? summaries[0].cliente_rtn 
+        : 'No especificado';
+      const usuarioNombre = summaries.length > 0 && summaries[0].usuario_nombre 
+        ? summaries[0].usuario_nombre 
+        : 'No especificado';
+
+      // Agrupar por cliente (tomar el primer cliente para llenar la plantilla)
+      const clientesData = summaries.reduce((acc, summary) => {
+        const key = summary.cliente_id;
+        if (!acc[key]) {
+          acc[key] = {
+            cliente: summary.cliente_nombre,
+            summaries: []
+          };
+        }
+        acc[key].summaries.push(summary);
+        return acc;
+      }, {} as Record<number, { cliente: string; summaries: ConsolidacionSumario[] }>);
+
+      // Tomar el primer cliente
+      const clienteData = Object.values(clientesData)[0];
+      
+      // Generar el texto del período
+      const selectedPeriod = generatePeriodOptions(summariesFilters.año).find(p => p.value === summariesFilters.periodo);
+      const periodoTexto = selectedPeriod?.label || summariesFilters.periodo;
+      
+      // MAPEAR DATOS A CELDAS ESPECÍFICAS - ExcelJS mantiene todos los estilos
+      worksheet.getCell('B3').value = periodoTexto;
+      worksheet.getCell('B4').value = clienteData.cliente;
+      worksheet.getCell('B5').value = clienteRTN;
+      worksheet.getCell('D4').value = fechaActual;
+      worksheet.getCell('D5').value = usuarioNombre;
+
+      // Mapeo de cuentas con sus posiciones en la plantilla
+      const cuentasMap = [
+        { key: 'caja_bancos', nombre: 'Caja y Bancos', row: 8 },
+        { key: 'ventas_gravadas_15', nombre: 'Ventas Gravadas 15%', row: 9 },
+        { key: 'isv_15_ventas', nombre: 'I.S.V. 15%', row: 10 },
+        { key: 'ventas_gravadas_18', nombre: 'Ventas Gravadas 18%', row: 11 },
+        { key: 'isv_18_ventas', nombre: 'I.S.V. 18%', row: 12 },
+        { key: 'ventas_exentas', nombre: 'Ventas Exentas', row: 13 },
+        { key: 'compras_gravadas_15', nombre: 'Compras Gravadas 15%', row: 14 },
+        { key: 'isv_15_compras', nombre: 'I.S.V. 15% Compras', row: 15 },
+        { key: 'compras_gravadas_18', nombre: 'Compras Gravadas 18%', row: 16 },
+        { key: 'isv_18_compras', nombre: 'I.S.V. 18% Compras', row: 17 },
+        { key: 'compras_exentas', nombre: 'Compras Exentas', row: 18 },
+        { key: 'ingresos_honorarios', nombre: 'Ingresos por Honorarios', row: 19 },
+        { key: 'sueldos_salarios', nombre: 'Sueldos y Salarios', row: 20 },
+        { key: 'treceavo_mes', nombre: '13 Avo mes', row: 21 },
+        { key: 'catorceavo_mes', nombre: '14 Avo mes', row: 22 },
+        { key: 'prestaciones_laborales', nombre: 'Prestaciones laborales', row: 23 },
+        { key: 'energia_electrica', nombre: 'Energía Eléctrica', row: 24 },
+        { key: 'suministro_agua', nombre: 'Suministro de Agua', row: 25 },
+        { key: 'hondutel', nombre: 'Hondutel', row: 26 },
+        { key: 'servicio_internet', nombre: 'Servicio de Internet', row: 27 },
+        { key: 'ihss', nombre: 'IHSS', row: 28 },
+        { key: 'aportaciones_infop', nombre: 'Aportaciones INFOP', row: 29 },
+        { key: 'aportaciones_rap', nombre: 'Aportaciones RAP', row: 30 },
+        { key: 'papeleria_utiles', nombre: 'Papelería y Útiles', row: 31 },
+        { key: 'alquileres', nombre: 'Alquileres', row: 32 },
+        { key: 'combustibles_lubricantes', nombre: 'Combustibles y Lubricantes', row: 33 },
+        { key: 'seguros', nombre: 'Seguros', row: 34 },
+        { key: 'viaticos_gastos_viaje', nombre: 'Viáticos / Gastos de viaje', row: 35 },
+        { key: 'impuestos_municipales', nombre: 'Impuestos Municipales', row: 36 },
+        { key: 'impuestos_estatales', nombre: 'Impuestos Estatales', row: 37 },
+        { key: 'honorarios_profesionales', nombre: 'Honorarios Profesionales', row: 38 },
+        { key: 'mantenimiento_vehiculos', nombre: 'Mantenimiento de Vehículos', row: 39 },
+        { key: 'reparacion_mantenimiento', nombre: 'Reparación y Mantenimiento', row: 40 },
+        { key: 'fletes_encomiendas', nombre: 'Fletes y encomiendas', row: 41 },
+        { key: 'limpieza_aseo', nombre: 'Limpieza y Aseo', row: 42 },
+        { key: 'seguridad_vigilancia', nombre: 'Seguridad y Vigilancia', row: 43 },
+        { key: 'materiales_suministros', nombre: 'Materiales y Suministros', row: 44 },
+        { key: 'publicidad_propaganda', nombre: 'Publicidad y Propaganda', row: 45 },
+        { key: 'gastos_bancarios', nombre: 'Gastos Bancarios', row: 46 },
+        { key: 'intereses_financieros', nombre: 'Intereses Financieros', row: 47 },
+        { key: 'tasa_seguridad_poblacional', nombre: 'Tasa de Seguridad Poblacional', row: 48 },
+        { key: 'gastos_varios', nombre: 'Gastos Varios', row: 49 }
+      ];
+
+      // Sumar todos los valores para este cliente
+      const totales = clienteData.summaries.reduce((acc, summary) => {
+        cuentasMap.forEach(cuenta => {
+          const debeKey = `${cuenta.key}_debe` as keyof ConsolidacionSumario;
+          const haberKey = `${cuenta.key}_haber` as keyof ConsolidacionSumario;
+          
+          if (!acc[cuenta.key]) {
+            acc[cuenta.key] = { debe: 0, haber: 0 };
+          }
+          
+          acc[cuenta.key].debe += Number(summary[debeKey]) || 0;
+          acc[cuenta.key].haber += Number(summary[haberKey]) || 0;
+        });
+        return acc;
+      }, {} as Record<string, { debe: number; haber: number }>);
+
+      // LLENAR DATOS EN LA TABLA - ExcelJS mantiene formatos automáticamente
+      cuentasMap.forEach(cuenta => {
+        const debe = totales[cuenta.key]?.debe || 0;
+        const haber = totales[cuenta.key]?.haber || 0;
+        
+        // Columna C = DEBE, Columna D = HABER
+        worksheet.getCell(`C${cuenta.row}`).value = debe === 0 ? 2 : debe;
+        worksheet.getCell(`D${cuenta.row}`).value = haber === 0 ? 2 : haber;
+      });
+
+      // CALCULAR Y LLENAR TOTALES
+      const totalDebe = clienteData.summaries.reduce((acc, summary) => acc + calcularTotalDebe(summary), 0);
+      const totalHaber = clienteData.summaries.reduce((acc, summary) => acc + calcularTotalHaber(summary), 0);
+      
+      worksheet.getCell('C50').value = totalDebe;
+      worksheet.getCell('D50').value = totalHaber;
+
+      // GENERAR Y DESCARGAR ARCHIVO - ExcelJS mantiene todos los estilos de la plantilla
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      const fileName = `Resumen_Consolidacion_${summariesFilters.año}_${summariesFilters.periodo}.xlsx`;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error generando Excel:', error);
+      alert('Error al generar el archivo Excel: ' + (error as Error).message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-2xl font-bold text-gray-800 mb-6"> Reportes y Métricas</h2>
         
-        {/* Filtros */}
-        <div className="flex gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="border rounded-md px-3 py-2"
-            >
-              <option value="todos">Todos los años</option>
-              {availableYears.map(year => (
-                <option key={year} value={year.toString()}>{year}</option>
-              ))}
-            </select>
+        {/* Filtros - Solo para Métricas Generales */}
+        {activeTab === 'metrics' && (
+          <div className="flex gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="border rounded-md px-3 py-2"
+              >
+                <option value="todos">Todos los años</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year.toString()}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+              <select
+                value={selectedCliente}
+                onChange={(e) => setSelectedCliente(e.target.value)}
+                className="border rounded-md px-3 py-2"
+              >
+                <option value="todos">Todos los clientes</option>
+                {clientes.map(cliente => (
+                  <option key={cliente.id} value={cliente.id.toString()}>{cliente.nombre_empresa}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
-            <select
-              value={selectedCliente}
-              onChange={(e) => setSelectedCliente(e.target.value)}
-              className="border rounded-md px-3 py-2"
-            >
-              <option value="todos">Todos los clientes</option>
-              {clientes.map(cliente => (
-                <option key={cliente.id} value={cliente.id.toString()}>{cliente.nombre_empresa}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+        )}
 
         {/* Pestañas */}
         <div className="border-b border-gray-200 mb-6">
@@ -544,7 +983,27 @@ const ReportsSection: React.FC = () => {
                       </select>
                     </div>
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={exportSummariesToExcel}
+                      disabled={loading || summaries.length === 0}
+                      className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Exportar Excel
+                    </button>
+                    <button
+                      onClick={exportSummariesToPDF}
+                      disabled={loading || summaries.length === 0}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Exportar PDF
+                    </button>
                     <button
                       onClick={handleApplySummariesFilters}
                       disabled={loading}
