@@ -60,6 +60,12 @@ const DashboardPage: React.FC = () => {
       icon: History,
       component: HistorySection,
     },
+    {
+      key: 'reports',
+      label: 'Reportes',
+      icon: FileText,
+      component: ReportsSection,
+    },
   ];
 
   // Items de navegación para clientes
@@ -71,14 +77,6 @@ const DashboardPage: React.FC = () => {
       component: ClientsViewSection,
     },
   ];
-
-  // Item de reportes (disponible para todos los usuarios)
-  const reportsItem: NavItem = {
-    key: 'reports',
-    label: 'Reportes',
-    icon: BarChart3,
-    component: ReportsSection,
-  };
 
   // Items de navegación independientes (solo para admin)
   const independentNavItems: NavItem[] = user?.role === 'admin' ? [
@@ -107,7 +105,7 @@ const DashboardPage: React.FC = () => {
   };
 
   // Todos los items disponibles (para encontrar el componente activo)
-  const allNavItems: NavItem[] = [homeItem, reportsItem, ...consolidacionesItems, ...clientesItems, ...independentNavItems, ...adminItems];
+  const allNavItems: NavItem[] = [homeItem, ...consolidacionesItems, ...clientesItems, ...independentNavItems, ...adminItems];
 
   // Actualizar reloj cada segundo
   useEffect(() => {
@@ -205,21 +203,6 @@ const DashboardPage: React.FC = () => {
               >
                 <BarChart3 className="h-4 w-4" />
                 <span>Inicio</span>
-              </button>
-
-              {/* Botón de Reportes */}
-              <button
-                onClick={() => setActiveSection('reports')}
-                className={`
-                  flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                  ${activeSection === 'reports'
-                    ? 'bg-primary-100 text-primary-700 border border-primary-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }
-                `}
-              >
-                <BarChart3 className="h-4 w-4" />
-                <span>Reportes</span>
               </button>
 
               {/* Menú dropdown de Consolidaciones */}

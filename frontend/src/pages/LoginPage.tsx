@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Lock, User, LogIn } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,18 +39,18 @@ const LoginPage: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-primary-600 rounded-full flex items-center justify-center mb-4">
-            <User className="h-8 w-8 text-white" />
-          </div>
+          {/* Logo */}
+            <div className="flex items-center">
+              <img 
+                src="/logo-home.png" 
+                alt="Servicios Contables de Occidente" 
+                className="h-300 w-300"
+              />
+            </div>
           <h2 className="text-3xl font-bold text-gray-900">
             Iniciar Sesión
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sistema de Consolidaciones
-          </p>
-          <p className="mt-2 text-sm text-gray-600">
-            SERVICIOS CONTABLES DE OCCIDENTE
-          </p>
+          
         </div>
 
         {/* Formulario */}
@@ -148,28 +147,12 @@ const LoginPage: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Enlaces */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              ¿No tienes cuenta?{' '}
-              <Link 
-                to="/register" 
-                className="font-medium text-primary-600 hover:text-primary-500"
-              >
-                Regístrate aquí
-              </Link>
-            </p>
-          </div>
         </div>
 
         {/* Información adicional */}
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            admin@contabilidad.com 
-          </p>
-          <p className="text-xs text-gray-500">
-            admin123 
+            Proporciona el ususario y contraseña que te asignaron para acceder al sistema.
           </p>
         </div>
       </div>
