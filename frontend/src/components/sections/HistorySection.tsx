@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import { formatDate, formatCurrency, formatCreationDate } from '../../utils/dateUtils';
 import autoTable from 'jspdf-autotable';
+import * as ExcelJS from 'exceljs';
 
 const HistorySection: React.FC = () => {
   const { user } = useAuth();
@@ -68,116 +69,131 @@ const HistorySection: React.FC = () => {
     }
   };
 
-  // Exportar consolidación a Excel
+  // Exportar consolidación individual a Excel
   const handleExportToExcel = async (consolidacion: Consolidacion) => {
     try {
       // Obtener los detalles completos de la consolidación
       const detalles = await consolidacionService.getById(consolidacion.id, consolidacion.tipo);
       
-      // Crear datos para la hoja de cálculo
-      const worksheetData: (string | number)[][] = [
-        // Información general
-        ['CONSOLIDACIÓN CONTABLE'],
-        [''],
-        ['Cliente:', detalles.cliente_nombre || 'No especificado'],
-        ['Usuario:', detalles.usuario_nombre || 'No especificado'],
-        ['Tipo:', detalles.tipo],
-        ['Período:', `${formatDate(detalles.fecha_inicio)} - ${formatDate(detalles.fecha_fin)}`],
-        ['Fecha de Creación:', formatCreationDate(detalles.fecha_creacion)],
-        [''],
-        // Encabezados de la tabla
-        ['CUENTA', 'DEBE', 'HABER'],
-      ];
+      // Cargar la plantilla Excel con ExcelJS
+      const templatePath = '/template_xlsx_historial.xlsx';
+      const response = await fetch(templatePath);
+      
+      if (!response.ok) {
+        throw new Error('No se pudo cargar la plantilla Excel');
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
+      const worksheet = workbook.getWorksheet(1);
+      
+      if (!worksheet) {
+        throw new Error('No se pudo acceder a la hoja de trabajo');
+      }
+      
+      // Información de la consolidación
+      const fechaActual = new Date().toLocaleDateString('es-HN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      
+      // Generar el texto del período
+      const periodoTexto = `${formatDate(detalles.fecha_inicio)} al ${formatDate(detalles.fecha_fin)}`;
+      
+      // MAPEAR DATOS A CELDAS ESPECÍFICAS - ExcelJS mantiene todos los estilos
+      worksheet.getCell('B3').value = periodoTexto;
+      worksheet.getCell('B4').value = detalles.cliente_nombre || 'No especificado';
+      worksheet.getCell('B5').value = detalles.cliente_rtn || 'No especificado';
+      worksheet.getCell('D4').value = fechaActual;
+      worksheet.getCell('D5').value = detalles.usuario_nombre || 'No especificado';
 
-      // Mapeo de cuentas (igual al modal)
+      // Mapeo de cuentas con sus posiciones en la plantilla
       const cuentasMap = [
-        { key: 'caja_bancos', nombre: 'Caja y Bancos' },
-        { key: 'ventas_gravadas_15', nombre: 'Ventas Gravadas 15%' },
-        { key: 'isv_15_ventas', nombre: 'I.S.V. 15%' },
-        { key: 'ventas_gravadas_18', nombre: 'Ventas Gravadas 18%' },
-        { key: 'isv_18_ventas', nombre: 'I.S.V. 18%' },
-        ...(detalles.tipo === 'HOTELES' ? [{ key: 'ist_4', nombre: 'I.S.T. 4%' }] : []),
-        { key: 'ventas_exentas', nombre: 'Ventas Exentas' },
-        { key: 'compras_gravadas_15', nombre: 'Compras Gravadas 15%' },
-        { key: 'isv_15_compras', nombre: 'I.S.V. 15%' },
-        { key: 'compras_gravadas_18', nombre: 'Compras Gravadas 18%' },
-        { key: 'isv_18_compras', nombre: 'I.S.V. 18%' },
-        { key: 'compras_exentas', nombre: 'Compras Exentas' },
-        { key: 'ingresos_honorarios', nombre: 'Ingresos por Honorarios' },
-        { key: 'sueldos_salarios', nombre: 'Sueldos y Salarios' },
-        { key: 'treceavo_mes', nombre: '13 Avo mes' },
-        { key: 'catorceavo_mes', nombre: '14 Avo mes' },
-        { key: 'prestaciones_laborales', nombre: 'Prestaciones laborales' },
-        { key: 'energia_electrica', nombre: 'Energía Eléctrica' },
-        { key: 'suministro_agua', nombre: 'Suministro de Agua' },
-        { key: 'hondutel', nombre: 'Hondutel' },
-        { key: 'servicio_internet', nombre: 'Servicio de Internet' },
-        { key: 'ihss', nombre: 'IHSS Instituto Hondureño de Seguridad Social' },
-        { key: 'aportaciones_infop', nombre: 'Aportaciones INFOP' },
-        { key: 'aportaciones_rap', nombre: 'Aportaciones RAP' },
-        { key: 'papeleria_utiles', nombre: 'Papelería y Útiles' },
-        { key: 'alquileres', nombre: 'Alquileres' },
-        { key: 'combustibles_lubricantes', nombre: 'Combustibles y Lubricantes' },
-        { key: 'seguros', nombre: 'Seguros' },
-        { key: 'viaticos_gastos_viaje', nombre: 'Viáticos / Gastos de viaje' },
-        { key: 'impuestos_municipales', nombre: 'Impuestos Municipales' },
-        { key: 'impuestos_estatales', nombre: 'Impuestos Estatales' },
-        { key: 'honorarios_profesionales', nombre: 'Honorarios Profesionales' },
-        { key: 'mantenimiento_vehiculos', nombre: 'Mantenimiento de Vehículos' },
-        { key: 'reparacion_mantenimiento', nombre: 'Reparación y Mantenimiento varios' },
-        { key: 'fletes_encomiendas', nombre: 'Fletes y encomiendas' },
-        { key: 'limpieza_aseo', nombre: 'Limpieza y Aseo' },
-        { key: 'seguridad_vigilancia', nombre: 'Seguridad y Vigilancia' },
-        { key: 'materiales_suministros', nombre: 'Materiales, Suministros y Accesorios' },
-        { key: 'publicidad_propaganda', nombre: 'Publicidad y Propaganda' },
-        { key: 'gastos_bancarios', nombre: 'Gastos Bancarios' },
-        { key: 'intereses_financieros', nombre: 'Intereses Financieros' },
-        { key: 'tasa_seguridad_poblacional', nombre: 'Tasa de Seguridad Poblacional' },
-        { key: 'gastos_varios', nombre: 'Gastos Varios' }
+        { key: 'caja_bancos', nombre: 'Caja y Bancos', row: 8 },
+        { key: 'ventas_gravadas_15', nombre: 'Ventas Gravadas 15%', row: 9 },
+        { key: 'isv_15_ventas', nombre: 'I.S.V. 15%', row: 10 },
+        { key: 'ventas_gravadas_18', nombre: 'Ventas Gravadas 18%', row: 11 },
+        { key: 'isv_18_ventas', nombre: 'I.S.V. 18%', row: 12 },
+        { key: 'ventas_exentas', nombre: 'Ventas Exentas', row: 13 },
+        { key: 'compras_gravadas_15', nombre: 'Compras Gravadas 15%', row: 14 },
+        { key: 'isv_15_compras', nombre: 'I.S.V. 15% Compras', row: 15 },
+        { key: 'compras_gravadas_18', nombre: 'Compras Gravadas 18%', row: 16 },
+        { key: 'isv_18_compras', nombre: 'I.S.V. 18% Compras', row: 17 },
+        { key: 'compras_exentas', nombre: 'Compras Exentas', row: 18 },
+        { key: 'ingresos_honorarios', nombre: 'Ingresos por Honorarios', row: 19 },
+        { key: 'sueldos_salarios', nombre: 'Sueldos y Salarios', row: 20 },
+        { key: 'treceavo_mes', nombre: '13 Avo mes', row: 21 },
+        { key: 'catorceavo_mes', nombre: '14 Avo mes', row: 22 },
+        { key: 'prestaciones_laborales', nombre: 'Prestaciones laborales', row: 23 },
+        { key: 'energia_electrica', nombre: 'Energía Eléctrica', row: 24 },
+        { key: 'suministro_agua', nombre: 'Suministro de Agua', row: 25 },
+        { key: 'hondutel', nombre: 'Hondutel', row: 26 },
+        { key: 'servicio_internet', nombre: 'Servicio de Internet', row: 27 },
+        { key: 'ihss', nombre: 'IHSS', row: 28 },
+        { key: 'aportaciones_infop', nombre: 'Aportaciones INFOP', row: 29 },
+        { key: 'aportaciones_rap', nombre: 'Aportaciones RAP', row: 30 },
+        { key: 'papeleria_utiles', nombre: 'Papelería y Útiles', row: 31 },
+        { key: 'alquileres', nombre: 'Alquileres', row: 32 },
+        { key: 'combustibles_lubricantes', nombre: 'Combustibles y Lubricantes', row: 33 },
+        { key: 'seguros', nombre: 'Seguros', row: 34 },
+        { key: 'viaticos_gastos_viaje', nombre: 'Viáticos / Gastos de viaje', row: 35 },
+        { key: 'impuestos_municipales', nombre: 'Impuestos Municipales', row: 36 },
+        { key: 'impuestos_estatales', nombre: 'Impuestos Estatales', row: 37 },
+        { key: 'honorarios_profesionales', nombre: 'Honorarios Profesionales', row: 38 },
+        { key: 'mantenimiento_vehiculos', nombre: 'Mantenimiento de Vehículos', row: 39 },
+        { key: 'reparacion_mantenimiento', nombre: 'Reparación y Mantenimiento', row: 40 },
+        { key: 'fletes_encomiendas', nombre: 'Fletes y encomiendas', row: 41 },
+        { key: 'limpieza_aseo', nombre: 'Limpieza y Aseo', row: 42 },
+        { key: 'seguridad_vigilancia', nombre: 'Seguridad y Vigilancia', row: 43 },
+        { key: 'materiales_suministros', nombre: 'Materiales y Suministros', row: 44 },
+        { key: 'publicidad_propaganda', nombre: 'Publicidad y Propaganda', row: 45 },
+        { key: 'gastos_bancarios', nombre: 'Gastos Bancarios', row: 46 },
+        { key: 'intereses_financieros', nombre: 'Intereses Financieros', row: 47 },
+        { key: 'tasa_seguridad_poblacional', nombre: 'Tasa de Seguridad Poblacional', row: 48 },
+        { key: 'gastos_varios', nombre: 'Gastos Varios', row: 49 }
       ];
 
-      // Agregar filas de cuentas
+      // LLENAR DATOS EN LA TABLA - ExcelJS mantiene formatos automáticamente
       cuentasMap.forEach(cuenta => {
-        const debeKey = `${cuenta.key}_debe`;
-        const haberKey = `${cuenta.key}_haber`;
-        const debe = detalles[debeKey] || 0;
-        const haber = detalles[haberKey] || 0;
+        const debeKey = `${cuenta.key}_debe` as keyof ConsolidacionDetalle;
+        const haberKey = `${cuenta.key}_haber` as keyof ConsolidacionDetalle;
         
-        worksheetData.push([
-          cuenta.nombre,
-          debe,
-          haber
-        ]);
+        const debe = Number(detalles[debeKey]) || 0;
+        const haber = Number(detalles[haberKey]) || 0;
+        
+        // Columna C = DEBE, Columna D = HABER
+        worksheet.getCell(`C${cuenta.row}`).value = debe;
+        worksheet.getCell(`D${cuenta.row}`).value = haber;
       });
 
-      // Agregar totales
+      // CALCULAR Y LLENAR TOTALES
       const totalDebe = calcularTotalDebe(detalles);
       const totalHaber = calcularTotalHaber(detalles);
-      worksheetData.push(['']);
-      worksheetData.push(['TOTALES', totalDebe, totalHaber]);
-      worksheetData.push(['']);
-      worksheetData.push(['BALANCE', totalDebe - totalHaber]);
+      
+      const totalRow = detalles.tipo === 'HOTELES' ? 50 : 49;
+      worksheet.getCell(`C${totalRow}`).value = totalDebe;
+      worksheet.getCell(`D${totalRow}`).value = totalHaber;
 
-      // Crear libro de trabajo
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      // GENERAR Y DESCARGAR ARCHIVO - ExcelJS mantiene todos los estilos de la plantilla
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
       
-      // Agregar estilos básicos
-      ws['!cols'] = [
-        { width: 40 }, // Columna de cuentas más ancha
-        { width: 15 }, // Columna debe
-        { width: 15 }  // Columna haber
-      ];
-
-      XLSX.utils.book_append_sheet(wb, ws, 'Consolidación');
+      const fileName = `Consolidacion_${detalles.tipo}_${detalles.cliente_nombre}_${formatDate(detalles.fecha_inicio)}_${formatDate(detalles.fecha_fin)}.xlsx`;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
       
-      // Descargar archivo
-      const fileName = `Consolidacion_${detalles.tipo}_${detalles.cliente_nombre?.replace(/\s+/g, '_')}_${consolidacion.id}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-      
-      toast.success('Archivo Excel exportado exitosamente');
+      toast.success('Excel exportado exitosamente');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error exportando a Excel';
+      console.error('Error generando Excel:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al generar el archivo Excel';
       toast.error(errorMessage);
     }
   };
