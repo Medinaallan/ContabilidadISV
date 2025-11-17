@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Lock, User, LogIn, Eye, EyeOff, Building2 } from 'lucide-react';
+import { Lock, User, LogIn, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Loading from '@/components/Loading';
 
