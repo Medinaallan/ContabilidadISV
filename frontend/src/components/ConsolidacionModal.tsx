@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, User, Calendar, DollarSign, Building, FileText } from 'lucide-react';
+import { X, User, Calendar, Building, FileText } from 'lucide-react';
 import { ConsolidacionDetalle } from '@/types';
+import { formatDate, formatCreationDate } from '@/utils/dateUtils';
 
 interface ConsolidacionModalProps {
   isOpen: boolean;
@@ -15,15 +16,6 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
 }) => {
   if (!isOpen || !consolidacion) return null;
 
-  // Formatear fecha
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   // Formatear moneda
   const formatCurrency = (amount: number) => {
@@ -224,7 +216,7 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
 
               <div className="bg-green-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
-                  <DollarSign className="h-4 w-4 text-green-600" />
+                  
                   <span className="text-sm font-medium text-gray-700">Total Debe</span>
                 </div>
                 <p className="text-lg font-semibold text-green-600">
@@ -234,7 +226,7 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
 
               <div className="bg-red-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
-                  <DollarSign className="h-4 w-4 text-red-600" />
+                  
                   <span className="text-sm font-medium text-gray-700">Total Haber</span>
                 </div>
                 <p className="text-lg font-semibold text-red-600">
@@ -319,7 +311,7 @@ const ConsolidacionModal: React.FC<ConsolidacionModalProps> = ({
             {/* Fecha de creación */}
             <div className="border-t pt-4">
               <p className="text-xs text-gray-500">
-                Consolidación creada el {formatDate(consolidacion.fecha_creacion)}
+                Consolidación creada el {formatCreationDate(consolidacion.fecha_creacion)}
               </p>
             </div>
           </div>

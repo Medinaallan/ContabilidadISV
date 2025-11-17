@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatDate, formatCurrency } from '../../utils/dateUtils';
+import { formatCurrency } from '../../utils/dateUtils';
 import { reportsService, clientesApi } from '../../services/api';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';

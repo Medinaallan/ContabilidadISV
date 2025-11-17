@@ -6,7 +6,6 @@ import Loading from '@/components/Loading';
 import ConsolidacionModal from '@/components/ConsolidacionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import { formatDate, formatCurrency, formatCreationDate } from '../../utils/dateUtils';
 import autoTable from 'jspdf-autotable';
