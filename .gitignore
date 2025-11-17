@@ -90,3 +90,6 @@ storybook-static
 # Temporary folders
 tmp/
 temp/
+
+#paginas editadas recientemente
+frontend/src/pages/RegisterPage.tsx

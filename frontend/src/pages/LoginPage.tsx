@@ -58,7 +58,7 @@ const LoginPage: React.FC = () => {
           
           {/* Panel izquierdo - Información */}
           <div className="hidden lg:flex flex-col justify-center text-white space-y-8">
-            <div className="space-y-6">
+            {/* <div className="space-y-6">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
                   <Building2 className="h-6 w-6 text-white" />
@@ -68,7 +68,7 @@ const LoginPage: React.FC = () => {
                   <p className="text-lg text-white/80">Sistema de Consolidaciones</p>
                 </div>
               </div>
-            </div>
+            </div> */}
             
             {/* Logo/Imagen */}
             <div className="flex justify-center opacity-60">
@@ -86,12 +86,12 @@ const LoginPage: React.FC = () => {
               {/* Header móvil */}
               <div className="lg:hidden text-center mb-8">
                 <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                    <Building2 className="h-8 w-8 text-white" />
-                  </div>
+                  <img 
+                    src="/logo-home.png" 
+                    alt="Servicios Contables de Occidente" 
+                    className="h-16 w-auto object-contain filter brightness-0 invert"
+                  />
                 </div>
-                <h1 className="text-2xl font-bold text-white mb-2">ContabilidadISV</h1>
-                <p className="text-white/80">Sistema de Consolidaciones</p>
               </div>
 
               {/* Card del formulario */}
@@ -112,7 +112,7 @@ const LoginPage: React.FC = () => {
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
+                        <User className="h-5 w-5 text-gray-800" />
                       </div>
                       <input
                         {...register('username', {
@@ -214,10 +214,13 @@ const LoginPage: React.FC = () => {
                 {/* Footer del card */}
                 <div className="mt-8 pt-6 border-t border-gray-200 text-center">
                   <p className="text-xs text-gray-500">
-                    🔒 Solicita acceso a tu administrador del sistema
+                     Departamento de Desarrollo Tecnológico
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Sistema empresarial - Acceso restringido
+                    Acceso restringido
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Servicios Contables de Occidente
                   </p>
                 </div>
               </div>
@@ -225,7 +228,7 @@ const LoginPage: React.FC = () => {
               {/* Info adicional móvil */}
               <div className="lg:hidden mt-6 text-center">
                 <p className="text-xs text-white/70">
-                  Sistema de gestión contable profesional
+                  Desarrollo a medida para empresas por Allan Medina
                 </p>
               </div>
             </div>
