@@ -16,6 +16,7 @@ const logsRoutes = require('./src/routes/logs');
 const userRoutes = require('./src/routes/users');
 const clienteRoutes = require('./src/routes/clientes');
 const consolidacionesRoutes = require('./src/routes/consolidaciones');
+const adminRoutes = require('./src/routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -84,6 +85,7 @@ app.use('/api/logs', logsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/clientes', clienteRoutes);
 app.use('/api/consolidaciones', consolidacionesRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Ruta de salud del servidor
 app.get('/api/health', (req, res) => {

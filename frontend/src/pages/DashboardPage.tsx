@@ -13,6 +13,7 @@ import {
   ChevronDown,
   FileText,
   UserPlus,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Loading from '@/components/Loading';
@@ -26,10 +27,11 @@ import ReportsSection from '@/components/sections/ReportsSection';
 import LogsSection from '@/components/sections/LogsSection';
 import UsersSection from '@/components/sections/UsersSection';
 import ClientsViewSection from '@/components/sections/ClientsViewSection';
+import SystemConfig from '@/components/SystemConfig';
 
 
 // Tipos para las secciones
-type SectionKey = 'home' | 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile';
+type SectionKey = 'home' | 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile' | 'system-config';
 
 interface NavItem {
   key: SectionKey;
@@ -89,12 +91,20 @@ const DashboardPage: React.FC = () => {
   ] : [];
 
   // Agregar sección de usuarios solo para administradores
-  const adminItems: NavItem[] = user?.role === 'admin' ? [{
-    key: 'users' as SectionKey,
-    label: 'Gestión de Usuarios',
-    icon: Users,
-    component: UsersSection,
-  }] : [];
+  const adminItems: NavItem[] = user?.role === 'admin' ? [
+    {
+      key: 'users' as SectionKey,
+      label: 'Gestión de Usuarios',
+      icon: Users,
+      component: UsersSection,
+    },
+    {
+      key: 'system-config' as SectionKey,
+      label: 'Configuración de Sistema',
+      icon: Shield,
+      component: SystemConfig,
+    }
+  ] : [];
 
   // Items especiales (home no aparece en el menú, es la página por defecto)
   const homeItem: NavItem = {

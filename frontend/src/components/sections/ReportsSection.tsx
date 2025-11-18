@@ -540,7 +540,8 @@ const ReportsSection: React.FC = () => {
           const haber = totales[cuenta.key]?.haber || 0;
           
           // Solo incluir filas que tienen valores
-          if (debe !== 0 || haber !== 0) {
+          //if (debe !== 0 || haber !== 0)
+           {
             tableData.push([
               cuenta.nombre,
               formatCurrency(debe),
@@ -627,7 +628,7 @@ const ReportsSection: React.FC = () => {
       alert('Error al generar el PDF');
     }
   };
-
+  // Exportar resúmenes a Excel usando plantilla
   const exportSummariesToExcel = async () => {
     if (summaries.length === 0) {
       alert('No hay datos para exportar');
@@ -762,8 +763,8 @@ const ReportsSection: React.FC = () => {
         const haber = totales[cuenta.key]?.haber || 0;
         
         // Columna C = DEBE, Columna D = HABER
-        worksheet.getCell(`C${cuenta.row}`).value = debe === 0 ? 2 : debe;
-        worksheet.getCell(`D${cuenta.row}`).value = haber === 0 ? 2 : haber;
+        worksheet.getCell(`C${cuenta.row}`).value = debe === 0 ? 0 : debe;
+        worksheet.getCell(`D${cuenta.row}`).value = haber === 0 ? 0 : haber;
       });
 
       // CALCULAR Y LLENAR TOTALES
