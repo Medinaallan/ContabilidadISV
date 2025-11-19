@@ -78,6 +78,35 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  // --- Logout automático por inactividad (1 hora) ---
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    const INACTIVITY_LIMIT = 1 * 60 * 60 * 1000; // 1 hora en ms
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (state.isAuthenticated) {
+        timeoutId = setTimeout(() => {
+          tokenUtils.removeToken();
+          tokenUtils.removeUserData();
+          dispatch({ type: 'LOGOUT' });
+          toast('LO SENTIMOS..!!!');
+          toast('Sesión cerrada por inactividad');
+        }, INACTIVITY_LIMIT);
+      }
+    };
+
+    // Escuchar eventos de usuario
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isAuthenticated]);
   // Verificar token al montar el componente
   useEffect(() => {
     const checkAuth = async () => {
