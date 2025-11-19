@@ -206,22 +206,19 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
     } catch (error) {
       console.error('Error obteniendo clientes:', error);
       toast.error('Error al cargar la lista de clientes');
-      // Mantener algunos clientes de ejemplo si falla la carga
-      // ...removed debug log...
       setClientesExistentes([
         
       ]);
     } finally {
       setLoadingClientes(false);
-      // ...removed debug log...
     }
   }, []);
 
   // Cargar clientes al abrir el modal
   useEffect(() => {
-    // ...removed debug log...
+    
     if (showModal && clientesExistentes.length === 0) {
-      // ...removed debug log...
+      
       try {
         cargarClientes();
       } catch (error) {
@@ -363,8 +360,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
 
       // ...removed debug log...
       
-      const response = await api.post('/consolidaciones', consolidacionData);
-      
+      await api.post('/consolidaciones', consolidacionData);
       toast.success(`Consolidación ${tipoRubro} guardada exitosamente!`);
       // ...removed debug log...
       
