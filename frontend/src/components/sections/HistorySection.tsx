@@ -26,12 +26,10 @@ const HistorySection: React.FC = () => {
       try {
         setIsLoading(true);
         const response = await consolidacionService.getHistory();
-        console.log('Datos de consolidaciones recibidos:', response.data);
+        // ...removed debug log...
         // Verificar si las consolidaciones tienen los campos total_debe y total_haber
         if (response.data.length > 0) {
-          console.log('Primera consolidación:', response.data[0]);
-          console.log('total_debe:', response.data[0].total_debe);
-          console.log('total_haber:', response.data[0].total_haber);
+          // ...removed debug logs...
         }
         setConsolidaciones(response.data);
       } catch (error) {
@@ -313,8 +311,7 @@ const HistorySection: React.FC = () => {
       const detalles = await consolidacionService.getById(consolidacion.id, consolidacion.tipo);
       
       // Debug: verificar que el RTN está llegando
-      console.log('Detalles de la consolidación:', detalles);
-      console.log('Cliente RTN:', detalles.cliente_rtn);
+      // ...removed debug logs...
       
       const pdf = new jsPDF('portrait', 'mm', 'letter');
       

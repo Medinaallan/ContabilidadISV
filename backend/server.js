@@ -1,4 +1,6 @@
 const express = require('express');
+const https = require('https');
+const fs = require('fs');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -38,6 +40,7 @@ app.use(limiter);
 // CORS configurado para red local
 app.use(cors({
   origin: [
+    'http://localhost:4174',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
@@ -54,7 +57,13 @@ app.use(cors({
     'http://26.171.184.161:5174',
     'http://26.120.44.48:5174',
     'http://192.168.1.18:5174',
-    'http://26.23.200.187:5174'
+    'http://192.168.1.17:5174',
+    'http://26.23.200.187:5174',
+    'http://26.224.155.138:5174',
+    'http://26.72.125.191:5174',
+    'http://26.134.152.172:5174'
+
+
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -134,43 +143,77 @@ function getLocalIP() {
   return 'localhost';
 }
 
-// Inicializar servidor
-const server = app.listen(PORT, HOST, async () => {
-  try {
-    // Inicializar base de datos
-    await db.init();
-    
-    const localIP = getLocalIP();
-    
-    console.log('🚀 Servidor iniciado exitosamente!');
-    console.log('📍 Direcciones de acceso:');
-    console.log(`   - Local: http://localhost:${PORT}`);
-    console.log(`   - Red Local: http://${localIP}:${PORT}`);
-    console.log(`   - Host: http://${HOST}:${PORT}`);
-    console.log('');
-    console.log('📊 Endpoints disponibles:');
-    console.log(`   - API Health: http://${localIP}:${PORT}/api/health`);
-    console.log(`   - API Auth: http://${localIP}:${PORT}/api/auth`);
-    console.log(`   - API Files: http://${localIP}:${PORT}/api/files`);
-    console.log(`   - API Reports: http://${localIP}:${PORT}/api/reports`);
-    console.log(`   - API Logs: http://${localIP}:${PORT}/api/logs`);
-    console.log(`   - API Clientes: http://${localIP}:${PORT}/api/clientes`);
-    console.log('');
-    console.log('⚙️  Configuración:');
-    console.log(`   - Entorno: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`   - Base de datos: ${process.env.DB_PATH || './database/consolidacion.db'}`);
-    console.log(`   - Uploads: ${process.env.UPLOAD_PATH || './uploads'}`);
-    console.log('');
-    console.log('👥 Usuario administrador por defecto:');
-    console.log('   - Email: admin@contabilidad.com');
-    console.log('   - Contraseña: admin123');
-    console.log('');
-    
-  } catch (error) {
-    console.error('❌ Error iniciando el servidor:', error);
-    process.exit(1);
-  }
-});
+
+let server;
+if (process.env.SSL_KEY && process.env.SSL_CERT) {
+  // Producción con SSL
+  const sslOptions = {
+    key: fs.readFileSync(process.env.SSL_KEY),
+    cert: fs.readFileSync(process.env.SSL_CERT)
+  };
+  server = https.createServer(sslOptions, app).listen(PORT, HOST, async () => {
+    try {
+      await db.init();
+      const localIP = getLocalIP();
+      console.log('🚀 Servidor HTTPS iniciado exitosamente!');
+      console.log('📍 Direcciones de acceso:');
+      console.log(`   - Local: https://localhost:${PORT}`);
+      console.log(`   - Red Local: https://${localIP}:${PORT}`);
+      console.log(`   - Host: https://${HOST}:${PORT}`);
+      console.log('');
+      console.log('📊 Endpoints disponibles:');
+      console.log(`   - API Health: https://${localIP}:${PORT}/api/health`);
+      console.log(`   - API Auth: https://${localIP}:${PORT}/api/auth`);
+      console.log(`   - API Files: https://${localIP}:${PORT}/api/files`);
+      console.log(`   - API Reports: https://${localIP}:${PORT}/api/reports`);
+      console.log(`   - API Logs: https://${localIP}:${PORT}/api/logs`);
+      console.log(`   - API Clientes: https://${localIP}:${PORT}/api/clientes`);
+      console.log('');
+      console.log('⚙️  Configuración:');
+      console.log(`   - Entorno: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`   - Base de datos: ${process.env.DB_PATH || './database/consolidacion.db'}`);
+      console.log(`   - Uploads: ${process.env.UPLOAD_PATH || './uploads'}`);
+      console.log('');
+      console.log('👥 Usuario administrador por defecto:');
+      console.log('   - Email: admin@contabilidad.com');
+      console.log('   - Contraseña: admin123');
+      console.log('');
+    } catch (error) {
+      console.error(' Error iniciando el servidor HTTPS:', error);
+      process.exit(1);
+    }
+  });
+} else {
+  // Fallback HTTP (desarrollo)
+  server = app.listen(PORT, HOST, async () => {
+    try {
+      await db.init();
+      const localIP = getLocalIP();
+      console.log(' Servidor HTTP iniciado exitosamente!');
+      console.log(' Direcciones de acceso:');
+      console.log(`   - Local: http://localhost:${PORT}`);
+      console.log(`   - Red Local: http://${localIP}:${PORT}`);
+      console.log(`   - Host: http://${HOST}:${PORT}`);
+      console.log('');
+      console.log(' Endpoints disponibles:');
+      console.log(`   - API Health: http://${localIP}:${PORT}/api/health`);
+      console.log(`   - API Auth: http://${localIP}:${PORT}/api/auth`);
+      console.log(`   - API Files: http://${localIP}:${PORT}/api/files`);
+      console.log(`   - API Reports: http://${localIP}:${PORT}/api/reports`);
+      console.log(`   - API Logs: http://${localIP}:${PORT}/api/logs`);
+      console.log(`   - API Clientes: http://${localIP}:${PORT}/api/clientes`);
+      console.log('');
+      console.log('  Configuración:');
+      console.log(`   - Entorno: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`   - Base de datos: ${process.env.DB_PATH || './database/consolidacion.db'}`);
+      console.log(`   - Uploads: ${process.env.UPLOAD_PATH || './uploads'}`);
+      console.log('');
+    } catch (error) {
+      console.error(' Error iniciando el servidor:', error);
+      process.exit(1);
+    }
+  });
+}
 
 // Manejo de errores del servidor
 server.on('error', (error) => {

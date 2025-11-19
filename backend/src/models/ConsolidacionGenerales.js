@@ -180,13 +180,6 @@ class ConsolidacionGenerales {
             
             const balanceado = Math.abs(diferencia) < 0.01; // Considerar balanceado si la diferencia es menor a 1 centavo
             
-            // Debug logging
-            console.log('Valores calculados:', {
-                total_debe: validTotalDebe,
-                total_haber: validTotalHaber,
-                diferencia: diferencia,
-                balanceado: balanceado
-            });
 
             const query = `
                 INSERT INTO consolidaciones_generales (

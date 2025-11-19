@@ -99,7 +99,7 @@ const SystemConfig: React.FC = () => {
 
   return (
     <div className="card">
-      <h3 className="text-lg font-semibold text-gray-900 mb-3">Configuración de Sistema (Admin)</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-3">Ajustes en DB y esenciales</h3>
 
       {!unlocked ? (
         <div className="space-y-3">

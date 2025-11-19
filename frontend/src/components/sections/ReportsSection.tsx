@@ -177,7 +177,7 @@ const ReportsSection: React.FC = () => {
   };
 
   const loadMetrics = async () => {
-    console.log('=== LOADING METRICS ===');
+    // ...removed debug log...
     setLoading(true);
     setError(null);
     try {
@@ -186,9 +186,8 @@ const ReportsSection: React.FC = () => {
         clienteId: selectedCliente !== 'todos' ? selectedCliente : undefined
       };
       
-      console.log('Loading metrics with params:', params);
+      // ...removed debug logs...
       const data = await reportsService.getMetrics(params);
-      console.log('Received metrics data:', data);
       setMetrics(data);
     } catch (error) {
       console.error('=== ERROR LOADING METRICS ===');
@@ -225,13 +224,7 @@ const ReportsSection: React.FC = () => {
       };
       
       const data = await reportsService.getSummaries(params);
-      console.log('=== SUMMARIES DATA RECEIVED ===');
-      console.log('Raw data:', data);
-      console.log('First item:', data[0]);
-      if (data[0]) {
-        console.log('cliente_rtn:', data[0].cliente_rtn);
-        console.log('usuario_nombre:', data[0].usuario_nombre);
-      }
+      // ...removed debug logs...
       setSummaries(data);
     } catch (error) {
       console.error('Error loading summaries:', error);
@@ -432,11 +425,7 @@ const ReportsSection: React.FC = () => {
         ? summaries[0].usuario_nombre 
         : 'No especificado';
         
-      console.log('=== PDF EXPORT DEBUG ===');
-      console.log('Summaries length:', summaries.length);
-      console.log('First summary:', summaries[0]);
-      console.log('Cliente RTN:', clienteRTN);
-      console.log('Usuario nombre:', usuarioNombre);
+      // ...removed debug logs...
 
       // Período más grande y más arriba
       pdf.setFontSize(12);

@@ -100,7 +100,7 @@ const DashboardPage: React.FC = () => {
     },
     {
       key: 'system-config' as SectionKey,
-      label: 'Configuración de Sistema',
+      label: 'Soporte técnico',
       icon: Shield,
       component: SystemConfig,
     }

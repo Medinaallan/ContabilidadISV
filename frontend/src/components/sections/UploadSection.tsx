@@ -173,11 +173,11 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
 
   // Cargar clientes desde la base de datos
   const cargarClientes = useCallback(async () => {
-    console.log('Iniciando carga de clientes...');
+    // ...removed debug log...
     setLoadingClientes(true);
     try {
       const token = localStorage.getItem('token');
-      console.log('Token encontrado:', token ? 'Sí' : 'No');
+      // ...removed debug log...
       
       const response = await fetch('/api/clientes?activo=true', {
         headers: {
@@ -186,19 +186,18 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
         }
       });
 
-      console.log('Respuesta del servidor:', response.status);
+      // ...removed debug log...
 
       if (!response.ok) {
         throw new Error('Error al cargar clientes');
       }
 
       const data = await response.json();
-      console.log('Respuesta completa:', data);
+      // ...removed debug log...
       
       // El backend devuelve { success: true, clientes: [...], total: n }
       if (data.success && Array.isArray(data.clientes)) {
-        console.log('Clientes cargados:', data.clientes.length);
-        console.log('Primer cliente:', data.clientes[0]); // Ver estructura del primer cliente
+        // ...removed debug logs...
         setClientesExistentes(data.clientes);
       } else {
         console.warn('Respuesta inesperada del servidor:', data);
@@ -208,21 +207,21 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
       console.error('Error obteniendo clientes:', error);
       toast.error('Error al cargar la lista de clientes');
       // Mantener algunos clientes de ejemplo si falla la carga
-      console.log('Usando clientes de ejemplo...');
+      // ...removed debug log...
       setClientesExistentes([
         
       ]);
     } finally {
       setLoadingClientes(false);
-      console.log('Carga de clientes completada');
+      // ...removed debug log...
     }
   }, []);
 
   // Cargar clientes al abrir el modal
   useEffect(() => {
-    console.log('useEffect - showModal cambió a:', showModal);
+    // ...removed debug log...
     if (showModal && clientesExistentes.length === 0) {
-      console.log('Cargando clientes...');
+      // ...removed debug log...
       try {
         cargarClientes();
       } catch (error) {
@@ -362,12 +361,12 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
         gastos_varios_haber: getValueForDisplay(datos[42], 42, 'haber')
       };
 
-      console.log('Enviando consolidación:', consolidacionData);
+      // ...removed debug log...
       
       const response = await api.post('/consolidaciones', consolidacionData);
       
       toast.success(`Consolidación ${tipoRubro} guardada exitosamente!`);
-      console.log('Consolidación guardada:', response.data);
+      // ...removed debug log...
       
       // Limpiar y cerrar la hoja de consolidación después de guardar exitosamente
       setDatos(datosIniciales);
@@ -418,7 +417,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
 
   // Nueva consolidación
   const handleNuevaConsolidacion = () => {
-    console.log('Abriendo modal de nueva consolidación...');
+    // ...removed debug log...
     setShowModal(true);
   };
 
@@ -437,7 +436,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
 
   // Iniciar consolidación
   const handleIniciarConsolidacion = () => {
-    console.log('Iniciando consolidación...', { clienteSeleccionado, periodo, tipoRubro });
+    // ...removed debug log...
     
     if (!clienteSeleccionado) {
       toast.error('Seleccione o cree un cliente');
@@ -459,7 +458,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
       setDatos([...datosIniciales]); 
       setShowModal(false);
       toast.success(`Nueva consolidación iniciada para ${clienteSeleccionado.nombre_empresa} (${tipoRubro})`);
-      console.log('Consolidación iniciada exitosamente');
+      // ...removed debug log...
     } catch (error) {
       console.error('Error al iniciar consolidación:', error);
       toast.error('Error al iniciar la consolidación');
@@ -797,7 +796,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onSectionChange }) => {
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  console.log('Botón clickeado!');
+                  // ...removed debug log...
                   handleIniciarConsolidacion();
                 }}
                 disabled={!clienteSeleccionado || !periodo.fechaInicio || !periodo.fechaFin || !tipoRubro}
