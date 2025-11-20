@@ -21,7 +21,16 @@
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
-  "keywords": ["contabilidad", "consolidacion", "fullstack", "express", "react"],
+  "keywords": [
+    "contabilidad",
+    "consolidacion",
+    "fullstack",
+    "express",
+    "react"
+  ],
   "author": "Sistema Contable",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "csv-parse": "^6.1.0"
+  }
 }

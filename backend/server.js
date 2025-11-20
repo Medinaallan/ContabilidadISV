@@ -155,13 +155,13 @@ if (process.env.SSL_KEY && process.env.SSL_CERT) {
     try {
       await db.init();
       const localIP = getLocalIP();
-      console.log('🚀 Servidor HTTPS iniciado exitosamente!');
-      console.log('📍 Direcciones de acceso:');
+      console.log(' Servidor HTTPS iniciado exitosamente!');
+      console.log(' Direcciones de acceso:');
       console.log(`   - Local: https://localhost:${PORT}`);
       console.log(`   - Red Local: https://${localIP}:${PORT}`);
       console.log(`   - Host: https://${HOST}:${PORT}`);
       console.log('');
-      console.log('📊 Endpoints disponibles:');
+      console.log(' Endpoints disponibles:');
       console.log(`   - API Health: https://${localIP}:${PORT}/api/health`);
       console.log(`   - API Auth: https://${localIP}:${PORT}/api/auth`);
       console.log(`   - API Files: https://${localIP}:${PORT}/api/files`);
@@ -169,12 +169,12 @@ if (process.env.SSL_KEY && process.env.SSL_CERT) {
       console.log(`   - API Logs: https://${localIP}:${PORT}/api/logs`);
       console.log(`   - API Clientes: https://${localIP}:${PORT}/api/clientes`);
       console.log('');
-      console.log('⚙️  Configuración:');
+      console.log('  Configuración:');
       console.log(`   - Entorno: ${process.env.NODE_ENV || 'development'}`);
       console.log(`   - Base de datos: ${process.env.DB_PATH || './database/consolidacion.db'}`);
       console.log(`   - Uploads: ${process.env.UPLOAD_PATH || './uploads'}`);
       console.log('');
-      console.log('👥 Usuario administrador por defecto:');
+      console.log(' Usuario administrador por defecto:');
       console.log('   - Email: admin@contabilidad.com');
       console.log('   - Contraseña: admin123');
       console.log('');

@@ -128,4 +128,10 @@ router.delete('/:id', clienteController.delete);
 // DELETE /api/clientes/:id/hard - Eliminar cliente permanentemente (solo admin)
 router.delete('/:id/hard', clienteController.deleteHard);
 
+
+// --- Carga masiva de clientes desde CSV (solo admin) ---
+const multer = require('multer');
+const uploadCsv = multer({ dest: 'uploads/' });
+router.post('/upload-csv', auth.requireRole(['admin']), uploadCsv.single('csv'), clienteController.uploadCSV);
+
 module.exports = router;

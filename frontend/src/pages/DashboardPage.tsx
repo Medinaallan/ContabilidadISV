@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import CSVUploadSection from '@/components/sections/CSVUploadSection';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -31,7 +32,7 @@ import SystemConfig from '@/components/SystemConfig';
 
 
 // Tipos para las secciones
-type SectionKey = 'home' | 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile' | 'system-config';
+type SectionKey = 'home' | 'upload' | 'history' | 'reports' | 'logs' | 'users' | 'clients-view' | 'clients-profile' | 'system-config' | 'csv-upload';
 
 interface NavItem {
   key: SectionKey;
@@ -78,6 +79,13 @@ const DashboardPage: React.FC = () => {
       icon: UserPlus,
       component: ClientsViewSection,
     },
+    // Solo admins pueden ver la carga masiva
+    ...(user?.role === 'admin' ? [{
+      key: 'csv-upload' as SectionKey,
+      label: 'Cargar desde CSV',
+      icon: FileText,
+      component: CSVUploadSection,
+    }] : [])
   ];
 
   // Items de navegación independientes (solo para admin)

@@ -41,7 +41,72 @@ const upload = multer({
   }
 });
 
+const { parse } = require('csv-parse/sync');
 const clienteController = {
+    // Carga masiva de clientes desde CSV
+    uploadCSV: async (req, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ success: false, message: 'No se subió ningún archivo CSV' });
+        }
+        // Leer archivo CSV
+        const filePath = req.file.path;
+        const fileContent = await fs.readFile(filePath, 'utf8');
+        // Parsear CSV
+        const records = parse(fileContent, {
+          columns: true,
+          skip_empty_lines: true,
+          delimiter: ';',
+          trim: true
+        });
+        let inserted = 0;
+        let errors = [];
+        for (const row of records) {
+          try {
+            // Validar campos mínimos
+            if (!row.nombre_empresa || !row.rtn || !row.rubro || !row.representante || !row.telefono || !row.email || !row.direccion) {
+              errors.push(`Faltan campos requeridos en: ${JSON.stringify(row)}`);
+              continue;
+            }
+            // Crear cliente
+            // Corregir RTN si viene en notación científica o como número
+            let rawRTN = row.rtn;
+            if (typeof rawRTN === 'number' || /^\d+(\.\d+)?e[\+\-]?\d+$/i.test(String(rawRTN))) {
+              // Convertir a string sin notación científica
+              rawRTN = Number(rawRTN).toLocaleString('fullwide', {useGrouping:false});
+            }
+            rawRTN = String(rawRTN).replace(/[^0-9]/g, ''); // Solo dígitos
+            if (rawRTN.length !== 14) {
+              errors.push(`RTN inválido (debe tener 14 dígitos): ${rawRTN}`);
+              continue;
+            }
+            await cliente.create({
+              nombre_empresa: row.nombre_empresa.trim(),
+              rtn: rawRTN,
+              rubro: row.rubro.trim(),
+              representante: row.representante.trim(),
+              telefono: row.telefono.trim(),
+              email: row.email.trim(),
+              direccion: row.direccion.trim(),
+              logo_url: row.logo_url || null,
+              activo: row.activo === 'true' || row.activo === '1' ? true : false,
+              fecha_registro: row.fecha_registro || null,
+              fecha_actualizacion: row.fecha_actualizacion || null,
+              usuario_creacion: req.user.id
+            });
+            inserted++;
+          } catch (err) {
+            errors.push(`Error en fila: ${JSON.stringify(row)} - ${err.message}`);
+          }
+        }
+        // Eliminar archivo temporal
+        await fs.unlink(filePath);
+        res.json({ success: true, inserted, errors });
+      } catch (error) {
+        console.error('Error en carga masiva de clientes:', error);
+        res.status(500).json({ success: false, message: error.message });
+      }
+    },
   // Obtener todos los clientes
   getAll: async (req, res) => {
     try {
